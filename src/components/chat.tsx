@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -97,7 +98,7 @@ export default function LearningPlatformChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  console.log("🧑 Current User:", currentUser);
+
 
   useEffect(() => {
     const fetchModules = async () => {
@@ -107,8 +108,8 @@ export default function LearningPlatformChat({
         if (data.length > 0) {
           setSelectedModule(data[0]);
         }
-      } catch (error) {
-        console.error("Failed to fetch modules:", error);
+      } catch (error:any) {
+        alert("Failed to fetch modules:");
       } finally {
         setLoadingModules(false);
       }
@@ -124,17 +125,15 @@ export default function LearningPlatformChat({
       try {
         const users = await moduleAPI.getModuleUsers(selectedModule.id);
         const filteredUsers = users.filter((user: any) => user.id !== currentUser?.id);
-        console.log("👥 Module users:", filteredUsers);
+        
         setModuleUsers(filteredUsers);
 
         const groups = await chatAPI.getModuleGroups();
         const moduleGroup = groups.find((g: any) => g.module_id === selectedModule.id);
         setModuleGroups(moduleGroup ? [moduleGroup] : []);
-        console.log("👥 Module group:", moduleGroup);
+       
 
-      } catch (error) {
-        console.error("Failed to fetch module data:", error);
-      } finally {
+      }  finally {
         setLoadingUsers(false);
       }
     };
@@ -144,19 +143,19 @@ export default function LearningPlatformChat({
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) {
-      console.error("❌ No socket connection");
+      
       return;
     }
 
-    console.log("🔌 Setting up socket listeners");
+    
 
     if (socket.hasListeners('user_presence_changed')) {
-      console.log("⚠️ Listeners already attached, skipping");
+      
       return;
     }
 
     const handleNewMessage = (message: any) => {
-      console.log("📨 New message:", message);
+      
       setMessages((prev) => {
         const roomMessages = prev.get(message.roomId) || [];
         const exists = roomMessages.some(
@@ -194,7 +193,7 @@ export default function LearningPlatformChat({
     };
 
     const handleNewMessageNotification = ({ roomId, message }: any) => {
-      console.log("🔔 Notification for room:", roomId);
+     
       setMessages((prev) => {
         const roomMessages = prev.get(roomId) || [];
         const exists = roomMessages.some((m) => m.id === message.id);
@@ -221,7 +220,7 @@ export default function LearningPlatformChat({
     };
 
     const handleStatusUpdate = ({ roomId, userId, status }: any) => {
-      console.log(`✅ Status update: Room=${roomId}, User=${userId}, Status=${status}`);
+     
 
       setMessages((prev) => {
         const newMap = new Map(prev);
@@ -253,7 +252,7 @@ export default function LearningPlatformChat({
     };
 
     const handlePresenceChanged = ({ userId, isOnline }: any) => {
-      console.log(`🟢 User ${userId} is now ${isOnline ? "ONLINE" : "OFFLINE"}`);
+      
 
       setModuleUsers((prev) => {
         const updated = prev.map((user) =>
@@ -293,10 +292,10 @@ export default function LearningPlatformChat({
     socket.on("user_presence_changed", handlePresenceChanged);
     socket.on("user_typing", handleUserTyping);
 
-    console.log("✅ All listeners attached");
+   
 
     return () => {
-      console.log("🧹 Component unmounting - removing listeners");
+      
       socket.off("new_message", handleNewMessage);
       socket.off("new_message_notification", handleNewMessageNotification);
       socket.off("messages_status_update", handleStatusUpdate);
@@ -307,18 +306,18 @@ export default function LearningPlatformChat({
 
   useEffect(() => {
     if (selectedModule) {
-      console.log("📍 Joining module:", selectedModule.id);
+      
       socketService.joinModule(selectedModule.id);
     }
   }, [selectedModule]);
 
   useEffect(() => {
     if (selectedRoom) {
-      console.log("📍 Joining room:", selectedRoom.id);
+     
       socketService.joinRoom(selectedRoom.id);
 
       const markReadTimer = setTimeout(() => {
-        console.log(`📖 Marking room ${selectedRoom.id} as read`);
+        
         socketService.getSocket()?.emit("mark_as_read", { roomId: selectedRoom.id });
       }, 1000);
 
@@ -446,10 +445,10 @@ export default function LearningPlatformChat({
       });
 
       setShowVoiceRecorder(false);
-      console.log('✅ Voice message sent');
+      
 
-    } catch (error) {
-      console.error('❌ Failed to send voice:', error);
+    } catch (error:any) {
+      
       alert('Failed to send voice message');
     }
   };
@@ -511,7 +510,7 @@ export default function LearningPlatformChat({
           return newMap;
         });
       } catch (error: any) {
-        console.error("❌ Failed to create room:", error.response?.data || error.message);
+        
         alert(error.response?.data?.error || "Failed to create chat");
       }
     },
@@ -521,7 +520,7 @@ export default function LearningPlatformChat({
   const handleGroupClick = useCallback(
     async (group: any) => {
       try {
-        console.log("📂 Opening group chat:", group);
+        
 
         setSelectedRoom({
           id: group.id,
@@ -551,7 +550,7 @@ export default function LearningPlatformChat({
         });
 
       } catch (error: any) {
-        console.error("❌ Failed to open group:", error);
+        
         alert("Failed to open group chat");
       }
     },

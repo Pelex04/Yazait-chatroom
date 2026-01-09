@@ -11,17 +11,9 @@ class SocketService {
       auth: { token },
     });
 
-    this.socket.on("connect", () => {
-      console.log("✅ Connected to WebSocket server");
-    });
+    
 
-    this.socket.on("disconnect", () => {
-      console.log("❌ Disconnected from WebSocket server");
-    });
-
-    this.socket.on("error", (error: any) => {
-      console.error("WebSocket error:", error);
-    });
+    
 
     return this.socket;
   }
@@ -37,19 +29,19 @@ class SocketService {
     return this.socket;
   }
 
-  // Join module
+ 
   joinModule(moduleId: string) {
     this.socket?.emit("join_module", { moduleId });
   }
   onNewMessageNotification(callback: (data: any) => void) {
     this.socket?.on("new_message_notification", callback);
   }
-  // Join room
+
   joinRoom(roomId: string) {
     this.socket?.emit("join_room", { roomId });
   }
 
-  // Send message
+
   sendMessage(data: {
     roomId: string;
     content: string;
@@ -63,17 +55,15 @@ class SocketService {
     this.socket?.emit("send_message", data);
   }
 
-  // Typing indicator
   sendTyping(roomId: string, isTyping: boolean) {
     this.socket?.emit("typing", { roomId, isTyping });
   }
 
-  // Read receipt
   sendReadReceipt(messageId: string, roomId: string) {
     this.socket?.emit("read_receipt", { messageId, roomId });
   }
 
-  // Listen to events
+
   onNewMessage(callback: (data: any) => void) {
     this.socket?.on("new_message", callback);
   }

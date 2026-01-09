@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useRef } from "react";
 import { Mic, Square, Play, Pause, Trash2, Send } from "lucide-react";
 
@@ -66,7 +67,7 @@ export default function VoiceRecorder({
         setRecordingTime((t) => t + 1);
       }, 1000);
     } catch (err) {
-      console.error("Microphone access denied", err);
+      
       alert("Microphone permission required.");
       onCancel();
     }

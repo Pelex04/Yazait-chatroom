@@ -7,28 +7,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        sidebar: "#1f2937", // gray-800
-        "chat-header": "#111827", // gray-900
-        "chat-message": "#ffffff", // white for message input bg
-        "chat-sent": "#2563eb", // blue-600 for sent messages
-        "chat-online": "#10b981", // green-500 for online indicator
+        sidebar: "#1f2937", 
+        "chat-header": "#111827", 
+        "chat-message": "#ffffff", 
+        "chat-sent": "#2563eb", 
+        "chat-online": "#10b981", 
         primary: {
-          DEFAULT: "#eab308", // yellow-500
-          foreground: "#000000", // black text on yellow
+          DEFAULT: "#eab308", 
+          foreground: "#000000", 
         },
         secondary: {
-          DEFAULT: "#374151", // gray-700
+          DEFAULT: "#374151", 
           foreground: "#ffffff",
         },
         muted: {
-          DEFAULT: "#6b7280", // gray-500
-          foreground: "#9ca3af", // gray-400
+          DEFAULT: "#6b7280", 
+          foreground: "#9ca3af", 
         },
         background: "#ffffff",
-        foreground: "#111827", // gray-900
-        border: "#374151", // gray-700
+        foreground: "#111827", 
+        border: "#374151", 
         destructive: {
-          DEFAULT: "#ef4444", // red-500
+          DEFAULT: "#ef4444", 
           foreground: "#ffffff",
         },
       },

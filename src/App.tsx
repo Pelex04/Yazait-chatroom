@@ -1,76 +1,57 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
-import Login from './components/Login';
-import LearningPlatformChat from './components/chat';
-import socketService from './services/socket';
-import { authAPI } from './services/api';
+import { useState, useEffect } from "react";
+import Login from "./components/Login";
+import LearningPlatformChat from "./components/chat";
+import socketService from "./services/socket";
+import { authAPI } from "./services/api";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true); // ← NEW: Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initializeUser = async () => {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (token) {
         try {
-          console.log('🔐 Token found, fetching user data...');
-          
-          // Fetch current user from API using the token
           const userData = await authAPI.getCurrentUser();
-          
-          console.log('✅ User data received:', userData.user);
-          
+
           setCurrentUser(userData.user);
           setIsAuthenticated(true);
-          
-          // Connect to WebSocket
+
           socketService.connect(token);
-          
         } catch (error: any) {
-          // Token invalid or expired
-          console.error('❌ Failed to fetch user:', error);
-          console.error('Error details:', error.response?.data);
-          
-          localStorage.removeItem('token');
+          localStorage.removeItem("token");
           setIsAuthenticated(false);
           setCurrentUser(null);
         }
-      } else {
-        console.log('ℹ️ No token found');
-      }
-      
-      setIsLoading(false); // ← NEW: Mark loading complete
+      } 
+
+      setIsLoading(false);
     };
 
     initializeUser();
   }, []);
 
   const handleLoginSuccess = (token: string, user: any) => {
-    console.log('🎉 Login successful:', user);
-    
-    localStorage.setItem('token', token); // ← IMPORTANT: Save token
+    localStorage.setItem("token", token);
     setCurrentUser(user);
     setIsAuthenticated(true);
+
     
-    // Connect to WebSocket
     socketService.connect(token);
   };
 
   const handleLogout = () => {
-    console.log('👋 Logging out...');
-    
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     socketService.disconnect();
     setIsAuthenticated(false);
     setCurrentUser(null);
   };
 
-  // ===================================================================
-  // NEW: Show loading screen while checking authentication
-  // ===================================================================
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -86,9 +67,6 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // ===================================================================
-  // NEW: Don't render chat until currentUser is loaded
-  // ===================================================================
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -100,7 +78,9 @@ function App() {
     );
   }
 
-  return <LearningPlatformChat onLogout={handleLogout} currentUser={currentUser} />;
+  return (
+    <LearningPlatformChat onLogout={handleLogout} currentUser={currentUser} />
+  );
 }
 
 export default App;
