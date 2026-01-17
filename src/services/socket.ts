@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = "https://chatroom-0u60.onrender.com/";
+const SOCKET_URL = "http://localhost:5000/";
 
 class SocketService {
   private socket: Socket | null = null;
@@ -10,10 +10,6 @@ class SocketService {
     this.socket = io(SOCKET_URL, {
       auth: { token },
     });
-
-    
-
-    
 
     return this.socket;
   }
@@ -29,10 +25,10 @@ class SocketService {
     return this.socket;
   }
 
- 
   joinModule(moduleId: string) {
     this.socket?.emit("join_module", { moduleId });
   }
+
   onNewMessageNotification(callback: (data: any) => void) {
     this.socket?.on("new_message_notification", callback);
   }
@@ -40,7 +36,6 @@ class SocketService {
   joinRoom(roomId: string) {
     this.socket?.emit("join_room", { roomId });
   }
-
 
   sendMessage(data: {
     roomId: string;
@@ -51,8 +46,29 @@ class SocketService {
     type?: "text" | "audio";
     audioUrl?: string;
     audioDuration?: number;
+    taggedMessage?: {              // NEW: Reply feature
+      id: string;
+      senderId: string;
+      senderName: string;
+      content: string;
+      type: 'text' | 'audio';
+    };
   }) {
     this.socket?.emit("send_message", data);
+  }
+
+  // NEW: Delete message
+  deleteMessage(messageId: string, roomId: string, deleteForEveryone: boolean) {
+    this.socket?.emit("delete_message", {
+      messageId,
+      roomId,
+      deleteForEveryone,
+    });
+  }
+
+  // NEW: Listen for message deletions
+  onMessageDeleted(callback: (data: any) => void) {
+    this.socket?.on("message_deleted", callback);
   }
 
   sendTyping(roomId: string, isTyping: boolean) {
@@ -62,7 +78,6 @@ class SocketService {
   sendReadReceipt(messageId: string, roomId: string) {
     this.socket?.emit("read_receipt", { messageId, roomId });
   }
-
 
   onNewMessage(callback: (data: any) => void) {
     this.socket?.on("new_message", callback);
