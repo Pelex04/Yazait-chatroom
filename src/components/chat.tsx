@@ -21,6 +21,8 @@ import {
   Reply,
   Trash2,
   X,
+  MoreVertical,
+  Trash 
 } from "lucide-react";
 import socketService from "../services/socket";
 import { chatAPI, moduleAPI } from "../services/api";
@@ -121,7 +123,8 @@ export default function LearningPlatformChat({
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [showMobileChat, setShowMobileChat] = useState(false);
-
+  const [showChatMenu, setShowChatMenu] = useState(false);
+const [showClearConfirm, setShowClearConfirm] = useState(false);
   // NEW: Context menu and reply states
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -174,60 +177,21 @@ export default function LearningPlatformChat({
     };
     fetchModuleData();
   }, [selectedModule]);
-
+  useEffect(() => {
+    const handleClickOutside = () => setShowChatMenu(false);
+    if (showChatMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showChatMenu]);
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) return;
 
     if (socket.hasListeners("user_presence_changed")) return;
 
-    const handleNewMessage = (message: any) => {
-      setMessages((prev) => {
-        const roomMessages = prev.get(message.roomId) || [];
-        const exists = roomMessages.some(
-          (m) =>
-            m.id === message.id ||
-            (m.clientMessageId && m.clientMessageId === message.clientMessageId)
-        );
-
-        if (exists) {
-          return new Map(prev).set(
-            message.roomId,
-            roomMessages.map((m) =>
-              m.clientMessageId === message.clientMessageId
-                ? {
-                    ...m,
-                    id: message.id,
-                    status: "sent" as MessageStatus,
-                    timestamp: new Date(message.timestamp),
-                    taggedMessage: message.taggedMessage || m.taggedMessage,
-                  }
-                : m
-            )
-          );
-        }
-
-        return new Map(prev).set(message.roomId, [
-          ...roomMessages,
-          {
-            id: message.id,
-            roomId: message.roomId,
-            senderId: message.senderId,
-            content: message.content,
-            type: message.type || "text",
-            audioUrl: message.audioUrl,
-            audioDuration: message.audioDuration,
-            timestamp: new Date(message.timestamp),
-            status: "delivered" as MessageStatus,
-            readBy: message.readBy || [message.senderId],
-            deliveredTo: message.deliveredTo || [],
-            deletedFor: message.deletedFor || [],
-            deletedForEveryone: message.deletedForEveryone || false,
-            taggedMessage: message.taggedMessage || null,
-          },
-        ]);
-      });
-    };
+    
+    
 
     const handleNewMessageNotification = ({ roomId, message }: any) => {
       setMessages((prev) => {
@@ -239,7 +203,7 @@ export default function LearningPlatformChat({
             {
               ...message,
               timestamp: new Date(message.timestamp),
-              type: message.type || "text",
+              type: message.type || 'text',
               deletedFor: message.deletedFor || [],
               deletedForEveryone: message.deletedForEveryone || false,
               taggedMessage: message.taggedMessage || null,
@@ -248,12 +212,75 @@ export default function LearningPlatformChat({
         }
         return prev;
       });
-
-      // CHANGE THIS: Track by roomId instead of senderId
+    
+      // INCREMENT unread count (was missing the increment logic)
       if (message.senderId !== currentUser.id) {
         setUnreadCounts((prev) => {
           const newMap = new Map(prev);
-          newMap.set(roomId, (newMap.get(roomId) || 0) + 1); // Use roomId here
+          newMap.set(roomId, (newMap.get(roomId) || 0) + 1);
+          return newMap;
+        });
+      }
+    };
+    
+    
+    // ============================================
+    // ALSO UPDATE: handleNewMessage
+    // Only clear unread if in current room
+    // ============================================
+    
+    const handleNewMessage = (message: any) => {
+      setMessages((prev) => {
+        const roomMessages = prev.get(message.roomId) || [];
+        const exists = roomMessages.some(
+          (m) => m.id === message.id || (m.clientMessageId && m.clientMessageId === message.clientMessageId)
+        );
+    
+        if (exists) {
+          return new Map(prev).set(
+            message.roomId,
+            roomMessages.map((m) =>
+              m.clientMessageId === message.clientMessageId
+                ? { 
+                    ...m, 
+                    id: message.id, 
+                    status: "sent" as MessageStatus, 
+                    timestamp: new Date(message.timestamp),
+                    taggedMessage: message.taggedMessage || m.taggedMessage,
+                    readBy: message.readBy || m.readBy,
+                    deliveredTo: message.deliveredTo || m.deliveredTo,
+                  }
+                : m
+            )
+          );
+        }
+    
+        return new Map(prev).set(message.roomId, [
+          ...roomMessages,
+          {
+            id: message.id,
+            roomId: message.roomId,
+            senderId: message.senderId,
+            content: message.content,
+            type: message.type || 'text',
+            audioUrl: message.audioUrl,
+            audioDuration: message.audioDuration,
+            timestamp: new Date(message.timestamp),
+            status: message.status || "delivered" as MessageStatus,
+            readBy: message.readBy || [message.senderId],
+            deliveredTo: message.deliveredTo || [],
+            deletedFor: message.deletedFor || [],
+            deletedForEveryone: message.deletedForEveryone || false,
+            taggedMessage: message.taggedMessage || null,
+          },
+        ]);
+      });
+    
+      // Clear unread ONLY if message is in currently selected room
+      if (selectedRoom && message.roomId === selectedRoom.id && message.senderId !== currentUser.id) {
+        setUnreadCounts((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(message.roomId, 0);
           return newMap;
         });
       }
@@ -356,13 +383,18 @@ export default function LearningPlatformChat({
         }, 3000);
       }
     };
-
+    const handleChatCleared = ({ roomId, success, clearedCount }: any) => {
+      if (success) {
+        console.log(` Chat cleared: ${clearedCount} messages in room ${roomId}`);
+      }
+    };
     socket.on("new_message", handleNewMessage);
     socket.on("new_message_notification", handleNewMessageNotification);
     socket.on("message_deleted", handleMessageDeleted); // NEW
     socket.on("messages_status_update", handleStatusUpdate);
     socket.on("user_presence_changed", handlePresenceChanged);
     socket.on("user_typing", handleUserTyping);
+    socket.on("chat_cleared", handleChatCleared);
 
     return () => {
       socket.off("new_message", handleNewMessage);
@@ -371,8 +403,9 @@ export default function LearningPlatformChat({
       socket.off("messages_status_update", handleStatusUpdate);
       socket.off("user_presence_changed", handlePresenceChanged);
       socket.off("user_typing", handleUserTyping);
+      socket.off("chat_cleared", handleChatCleared); 
     };
-  }, [currentUser.id]);
+  }, [currentUser.id,selectedRoom?.id]);
 
   // Close context menu when clicking outside
   useEffect(() => {
@@ -608,22 +641,36 @@ export default function LearningPlatformChat({
     },
     [selectedRoom]
   );
+  const handleClearChat = useCallback(() => {
+    if (!selectedRoom) return;
+  
+    // Emit socket event to clear chat on server
+    socketService.getSocket()?.emit("clear_chat", { roomId: selectedRoom.id });
+  
+    // Immediately clear messages locally for instant UX
+    setMessages((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(selectedRoom.id, []);
+      return newMap;
+    });
+  
+    // Close dialogs
+    setShowClearConfirm(false);
+    setShowChatMenu(false);
+  }, [selectedRoom]);
 
   const handleUserClick = useCallback(
     async (clickedUser: User) => {
       if (!selectedModule) return;
-
+  
       if (clickedUser.id === currentUser.id) {
         alert("Cannot chat with yourself!");
         return;
       }
-
+  
       try {
-        const room = await chatAPI.getOrCreateRoom(
-          clickedUser.id,
-          selectedModule.id
-        );
-
+        const room = await chatAPI.getOrCreateRoom(clickedUser.id, selectedModule.id);
+  
         setSelectedRoom({
           id: room.id,
           moduleId: room.module_id,
@@ -632,16 +679,16 @@ export default function LearningPlatformChat({
           participants: [currentUser.id, clickedUser.id],
           unreadCount: 0,
         });
-
+  
         setShowMobileChat(true);
-
-        // CHANGE THIS: Clear unread count using room.id
+  
         setUnreadCounts((prev) => {
           const newMap = new Map(prev);
-          newMap.set(room.id, 0); // Use room.id instead of clickedUser.id
+          newMap.set(room.id, 0);
           return newMap;
         });
-
+  
+        // Get room messages - backend will filter out cleared messages
         const history = await chatAPI.getRoomMessages(room.id);
         setMessages((prev) => {
           const newMap = new Map(prev);
@@ -652,7 +699,7 @@ export default function LearningPlatformChat({
               timestamp: new Date(msg.timestamp),
               deliveredTo: msg.deliveredTo || [],
               readBy: msg.readBy || [msg.senderId],
-              type: msg.type || "text",
+              type: msg.type || 'text',
               deletedFor: msg.deletedFor || [],
               deletedForEveryone: msg.deletedForEveryone || false,
               taggedMessage: msg.taggedMessage || null,
@@ -667,48 +714,51 @@ export default function LearningPlatformChat({
     [selectedModule, currentUser]
   );
 
-  const handleGroupClick = useCallback(async (group: any) => {
-    try {
-      setSelectedRoom({
-        id: group.id,
-        moduleId: group.module_id,
-        type: "group",
-        name: group.name,
-        participants: [],
-        unreadCount: 0,
-      });
-
-      setShowMobileChat(true);
-
-      // ADD THIS: Clear unread count for the group
-      setUnreadCounts((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(group.id, 0);
-        return newMap;
-      });
-
-      const history = await chatAPI.getRoomMessages(group.id);
-      setMessages((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(
-          group.id,
-          history.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp),
-            deliveredTo: msg.deliveredTo || [],
-            readBy: msg.readBy || [msg.senderId],
-            type: msg.type || "text",
-            deletedFor: msg.deletedFor || [],
-            deletedForEveryone: msg.deletedForEveryone || false,
-            taggedMessage: msg.taggedMessage || null,
-          }))
-        );
-        return newMap;
-      });
-    } catch (error: any) {
-      alert("Failed to open group chat");
-    }
-  }, []);
+  const handleGroupClick = useCallback(
+    async (group: any) => {
+      try {
+        setSelectedRoom({
+          id: group.id,
+          moduleId: group.module_id,
+          type: 'group',
+          name: group.name,
+          participants: [],
+          unreadCount: 0,
+        });
+  
+        setShowMobileChat(true);
+  
+        setUnreadCounts((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(group.id, 0);
+          return newMap;
+        });
+  
+        // Get room messages - backend will filter out cleared messages
+        const history = await chatAPI.getRoomMessages(group.id);
+        setMessages((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(
+            group.id,
+            history.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp),
+              deliveredTo: msg.deliveredTo || [],
+              readBy: msg.readBy || [msg.senderId],
+              type: msg.type || 'text',
+              deletedFor: msg.deletedFor || [],
+              deletedForEveryone: msg.deletedForEveryone || false,
+              taggedMessage: msg.taggedMessage || null,
+            }))
+          );
+          return newMap;
+        });
+      } catch (error: any) {
+        alert("Failed to open group chat");
+      }
+    },
+    []
+  );
 
   const handleBackToList = () => {
     setShowMobileChat(false);
@@ -1079,46 +1129,73 @@ export default function LearningPlatformChat({
       >
         {selectedRoom ? (
           <>
-            {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <button
-                  onClick={handleBackToList}
-                  className="md:hidden p-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div className="text-2xl sm:text-3xl flex-shrink-0">
-                  {getRoomIcon(selectedRoom)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
-                    {getRoomDisplayName(selectedRoom)}
-                  </h2>
-                  <div className="text-xs text-gray-500">
-                    {selectedRoom.type === "group" ? (
-                      <span>Group Chat</span>
-                    ) : (
-                      (() => {
-                        const otherUser = getUserById(
-                          selectedRoom.participants.find(
-                            (p) => p !== currentUser.id
-                          )!
-                        );
-                        return otherUser?.isOnline ? (
-                          <span className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            Online
-                          </span>
-                        ) : (
-                          <span>Offline</span>
-                        );
-                      })()
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+           {/* Chat Header */}
+<div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative">
+  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+    <button
+      onClick={handleBackToList}
+      className="md:hidden p-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+    >
+      <ArrowLeft size={20} />
+    </button>
+    <div className="text-2xl sm:text-3xl flex-shrink-0">{getRoomIcon(selectedRoom)}</div>
+    <div className="min-w-0 flex-1">
+      <h2 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+        {getRoomDisplayName(selectedRoom)}
+      </h2>
+      <div className="text-xs text-gray-500">
+        {selectedRoom.type === 'group' ? (
+          <span>Group Chat</span>
+        ) : (
+          (() => {
+            const otherUser = getUserById(selectedRoom.participants.find((p) => p !== currentUser.id)!);
+            return otherUser?.isOnline ? (
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Online
+              </span>
+            ) : (
+              <span>Offline</span>
+            );
+          })()
+        )}
+      </div>
+    </div>
+  </div>
+
+  {/* Three-Dot Menu Button */}
+  <div className="relative flex-shrink-0">
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowChatMenu(!showChatMenu);
+      }}
+      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+      title="More options"
+    >
+      <MoreVertical size={20} className="text-gray-600" />
+    </button>
+
+    {/* Dropdown Menu */}
+    {showChatMenu && (
+      <div
+        className="absolute right-0 top-12 bg-white shadow-lg rounded-lg py-2 z-50 border border-gray-200 min-w-[180px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => {
+            setShowClearConfirm(true);
+            setShowChatMenu(false);
+          }}
+          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-3 text-red-600"
+        >
+          <Trash size={16} />
+          Clear Chat
+        </button>
+      </div>
+    )}
+  </div>
+</div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50">
@@ -1361,7 +1438,47 @@ export default function LearningPlatformChat({
                   )}
               </div>
             )}
+{/* Clear Chat Confirmation Dialog */}
+{showClearConfirm && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-start gap-4 mb-4">
+        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <Trash className="text-red-600" size={20} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Clear Chat History?
+          </h3>
+          <p className="text-sm text-gray-600">
+            {selectedRoom?.type === 'group' 
+              ? `This will delete all messages in "${getRoomDisplayName(selectedRoom)}" from your device. This action cannot be undone.`
+              : `This will delete all messages with ${getRoomDisplayName(selectedRoom)} from your device. This action cannot be undone.`
+            }
+          </p>
+        </div>
+      </div>
 
+      <div className="flex gap-3 justify-end">
+        <button
+          onClick={() => setShowClearConfirm(false)}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleClearChat}
+          className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+        >
+          Clear Chat
+        </button>
+      </div>
+    </div>
+  </div>
+)}
             {/* Reply Bar */}
             {replyingTo && (
               <div className="bg-gray-100 border-t border-gray-200 px-4 py-2 flex items-center justify-between">
