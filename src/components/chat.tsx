@@ -1225,9 +1225,9 @@ export default function LearningPlatformChat({
       // Try to find existing room in messages
       for (const [roomId, roomMessages] of messages.entries()) {
         if (roomMessages.length > 0) {
-          const room = roomMessages[0];
+          //const room = roomMessages[0];
           // Check if this is a one-on-one room between currentUser and this user
-          const participants = [room.senderId];
+          //const participants = [room.senderId];
           // Get other messages to identify all participants
           const allSenders = new Set(roomMessages.map((m) => m.senderId));
 
