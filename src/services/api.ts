@@ -19,6 +19,37 @@ api.interceptors.request.use((config) => {
 });
 
 export const authAPI = {
+    ssoLogin: async (ssoToken: string) => {
+    console.log('🔵 Calling SSO API...');
+    console.log('🔗 URL:', `${API_URL}/auth/sso`);
+    
+    const response = await fetch(`${API_URL}/auth/sso`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token: ssoToken }),
+    });
+
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ SSO Error:', errorText);
+      
+      // Try to parse as JSON, fallback to text
+      try {
+        const error = JSON.parse(errorText);
+        throw new Error(error.error || 'SSO authentication failed');
+      } catch {
+        throw new Error(errorText || 'SSO authentication failed');
+      }
+    }
+
+    const data = await response.json();
+    console.log('✅ SSO Success:', data);
+    return data;
+  },
   register: async (data: {
     email: string;
     password: string;

@@ -51,7 +51,7 @@ class SocketService {
       senderId: string;
       senderName: string;
       content: string;
-      type: 'text' | 'audio';
+      type: 'text' | 'audio'| 'attachment';
     };
   }) {
     this.socket?.emit("send_message", data);

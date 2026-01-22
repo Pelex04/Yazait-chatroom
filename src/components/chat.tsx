@@ -22,7 +22,13 @@ import {
   Trash2,
   X,
   MoreVertical,
-  Trash 
+  Trash,
+  Paperclip,
+  Download,
+  File,
+  FileText,
+  Image as ImageIcon,
+  Video,
 } from "lucide-react";
 import socketService from "../services/socket";
 import { chatAPI, moduleAPI } from "../services/api";
@@ -53,18 +59,30 @@ interface TaggedMessage {
   senderId: string;
   senderName: string;
   content: string;
-  type: "text" | "audio";
+  type: "text" | "audio"| "attachment";
 }
-
+interface AttachmentPreview {
+  file: File;
+  preview?: string;
+  uploading: boolean;
+  error?: string;
+}
 interface Message {
   id: string;
   clientMessageId?: string;
   roomId: string;
   senderId: string;
   content: string;
-  type?: "text" | "audio";
+  type?: "text" | "audio" | "attachment";
   audioUrl?: string;
   audioDuration?: number;
+  attachment?: {
+    filename: string;
+    originalName: string;
+    mimetype: string;
+    size: number;
+    url: string;
+  };
   timestamp: Date;
   status: MessageStatus;
   readBy: string[];
@@ -102,7 +120,7 @@ export default function LearningPlatformChat({
       avatar: propCurrentUser.avatar || "👤",
       isOnline: true,
     }),
-    [propCurrentUser]
+    [propCurrentUser],
   );
 
   const [modules, setModules] = useState<Module[]>([]);
@@ -111,20 +129,23 @@ export default function LearningPlatformChat({
   const [messages, setMessages] = useState<Map<string, Message[]>>(new Map());
   const [messageInput, setMessageInput] = useState("");
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(
-    new Map()
+    new Map(),
   );
   const [moduleUsers, setModuleUsers] = useState<User[]>([]);
   const [moduleGroups, setModuleGroups] = useState<any[]>([]);
   const [loadingModules, setLoadingModules] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(
-    new Map()
+    new Map(),
   );
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [showChatMenu, setShowChatMenu] = useState(false);
-const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [attachmentPreview, setAttachmentPreview] =
+    useState<AttachmentPreview | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // NEW: Context menu and reply states
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -161,14 +182,14 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       try {
         const users = await moduleAPI.getModuleUsers(selectedModule.id);
         const filteredUsers = users.filter(
-          (user: any) => user.id !== currentUser?.id
+          (user: any) => user.id !== currentUser?.id,
         );
 
         setModuleUsers(filteredUsers);
 
         const groups = await chatAPI.getModuleGroups();
         const moduleGroup = groups.find(
-          (g: any) => g.module_id === selectedModule.id
+          (g: any) => g.module_id === selectedModule.id,
         );
         setModuleGroups(moduleGroup ? [moduleGroup] : []);
       } finally {
@@ -180,8 +201,8 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
   useEffect(() => {
     const handleClickOutside = () => setShowChatMenu(false);
     if (showChatMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [showChatMenu]);
   useEffect(() => {
@@ -189,9 +210,6 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
     if (!socket) return;
 
     if (socket.hasListeners("user_presence_changed")) return;
-
-    
-    
 
     const handleNewMessageNotification = ({ roomId, message }: any) => {
       setMessages((prev) => {
@@ -203,7 +221,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
             {
               ...message,
               timestamp: new Date(message.timestamp),
-              type: message.type || 'text',
+              type: message.type || "text",
               deletedFor: message.deletedFor || [],
               deletedForEveryone: message.deletedForEveryone || false,
               taggedMessage: message.taggedMessage || null,
@@ -212,7 +230,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
         }
         return prev;
       });
-    
+
       // INCREMENT unread count (was missing the increment logic)
       if (message.senderId !== currentUser.id) {
         setUnreadCounts((prev) => {
@@ -222,39 +240,41 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
         });
       }
     };
-    
-    
+
     // ============================================
     // ALSO UPDATE: handleNewMessage
     // Only clear unread if in current room
     // ============================================
-    
+
     const handleNewMessage = (message: any) => {
       setMessages((prev) => {
         const roomMessages = prev.get(message.roomId) || [];
         const exists = roomMessages.some(
-          (m) => m.id === message.id || (m.clientMessageId && m.clientMessageId === message.clientMessageId)
+          (m) =>
+            m.id === message.id ||
+            (m.clientMessageId &&
+              m.clientMessageId === message.clientMessageId),
         );
-    
+
         if (exists) {
           return new Map(prev).set(
             message.roomId,
             roomMessages.map((m) =>
               m.clientMessageId === message.clientMessageId
-                ? { 
-                    ...m, 
-                    id: message.id, 
-                    status: "sent" as MessageStatus, 
+                ? {
+                    ...m,
+                    id: message.id,
+                    status: "sent" as MessageStatus,
                     timestamp: new Date(message.timestamp),
                     taggedMessage: message.taggedMessage || m.taggedMessage,
                     readBy: message.readBy || m.readBy,
                     deliveredTo: message.deliveredTo || m.deliveredTo,
                   }
-                : m
-            )
+                : m,
+            ),
           );
         }
-    
+
         return new Map(prev).set(message.roomId, [
           ...roomMessages,
           {
@@ -262,11 +282,11 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
             roomId: message.roomId,
             senderId: message.senderId,
             content: message.content,
-            type: message.type || 'text',
+            type: message.type || "text",
             audioUrl: message.audioUrl,
             audioDuration: message.audioDuration,
             timestamp: new Date(message.timestamp),
-            status: message.status || "delivered" as MessageStatus,
+            status: message.status || ("delivered" as MessageStatus),
             readBy: message.readBy || [message.senderId],
             deliveredTo: message.deliveredTo || [],
             deletedFor: message.deletedFor || [],
@@ -275,9 +295,13 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
           },
         ]);
       });
-    
+
       // Clear unread ONLY if message is in currently selected room
-      if (selectedRoom && message.roomId === selectedRoom.id && message.senderId !== currentUser.id) {
+      if (
+        selectedRoom &&
+        message.roomId === selectedRoom.id &&
+        message.senderId !== currentUser.id
+      ) {
         setUnreadCounts((prev) => {
           const newMap = new Map(prev);
           newMap.set(message.roomId, 0);
@@ -354,7 +378,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
     const handlePresenceChanged = ({ userId, isOnline }: any) => {
       setModuleUsers((prev) => {
         const updated = prev.map((user) =>
-          user.id === userId ? { ...user, isOnline } : user
+          user.id === userId ? { ...user, isOnline } : user,
         );
         return updated;
       });
@@ -385,7 +409,9 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
     };
     const handleChatCleared = ({ roomId, success, clearedCount }: any) => {
       if (success) {
-        console.log(` Chat cleared: ${clearedCount} messages in room ${roomId}`);
+        console.log(
+          ` Chat cleared: ${clearedCount} messages in room ${roomId}`,
+        );
       }
     };
     socket.on("new_message", handleNewMessage);
@@ -403,9 +429,9 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       socket.off("messages_status_update", handleStatusUpdate);
       socket.off("user_presence_changed", handlePresenceChanged);
       socket.off("user_typing", handleUserTyping);
-      socket.off("chat_cleared", handleChatCleared); 
+      socket.off("chat_cleared", handleChatCleared);
     };
-  }, [currentUser.id,selectedRoom?.id]);
+  }, [currentUser.id, selectedRoom?.id]);
 
   // Close context menu when clicking outside
   useEffect(() => {
@@ -460,6 +486,12 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
   }, [moduleUsers, currentUser]);
 
   const handleSendMessage = useCallback(() => {
+    // Check if we're sending an attachment
+    if (attachmentPreview) {
+      sendAttachment(messageInput.trim());
+      return;
+    }
+
     if (!messageInput.trim() || !selectedRoom || !selectedModule) return;
 
     const clientMessageId = `client-${Date.now()}-${Math.random()
@@ -485,7 +517,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       deliveredTo: [],
       deletedFor: [],
       deletedForEveryone: false,
-      taggedMessage: replyingTo || undefined, // NEW: Include reply
+      taggedMessage: replyingTo || undefined,
     };
 
     setMessages((prev) => {
@@ -497,7 +529,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
     });
 
     setMessageInput("");
-    setReplyingTo(null); // Clear reply
+    setReplyingTo(null);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     socketService.sendTyping(selectedRoom.id, false);
 
@@ -508,9 +540,16 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       moduleId: selectedModule.id,
       targetUserId,
       clientMessageId,
-      taggedMessage: replyingTo || undefined, // NEW
+      taggedMessage: replyingTo || undefined,
     });
-  }, [messageInput, selectedRoom, selectedModule, currentUser.id, replyingTo]);
+  }, [
+    messageInput,
+    selectedRoom,
+    selectedModule,
+    currentUser.id,
+    replyingTo,
+    attachmentPreview,
+  ]);
 
   const handleVoiceSend = async (audioBlob: Blob, duration: number) => {
     if (!selectedRoom || !selectedModule) return;
@@ -529,7 +568,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) throw new Error("Upload failed");
@@ -595,10 +634,10 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       socketService.sendTyping(selectedRoom.id, true);
       typingTimeoutRef.current = setTimeout(
         () => socketService.sendTyping(selectedRoom.id, false),
-        2000
+        2000,
       );
     },
-    [selectedRoom]
+    [selectedRoom],
   );
 
   // NEW: Handle context menu (right-click or long-press)
@@ -611,7 +650,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
         message,
       });
     },
-    []
+    [],
   );
 
   // NEW: Handle reply
@@ -635,42 +674,168 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       socketService.deleteMessage(
         message.id,
         selectedRoom.id,
-        deleteForEveryone
+        deleteForEveryone,
       );
       setContextMenu(null);
     },
-    [selectedRoom]
+    [selectedRoom],
   );
   const handleClearChat = useCallback(() => {
     if (!selectedRoom) return;
-  
+
     // Emit socket event to clear chat on server
     socketService.getSocket()?.emit("clear_chat", { roomId: selectedRoom.id });
-  
+
     // Immediately clear messages locally for instant UX
     setMessages((prev) => {
       const newMap = new Map(prev);
       newMap.set(selectedRoom.id, []);
       return newMap;
     });
-  
+
     // Close dialogs
     setShowClearConfirm(false);
     setShowChatMenu(false);
   }, [selectedRoom]);
+  
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size must be less than 10MB");
+      return;
+    }
+
+    let preview: string | undefined;
+    if (file.type.startsWith("image/")) {
+      preview = URL.createObjectURL(file);
+    }
+
+    setAttachmentPreview({
+      file,
+      preview,
+      uploading: false,
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const sendAttachment = async (caption: string = "") => {
+    if (!attachmentPreview || !selectedRoom || !selectedModule) return;
+
+    try {
+      setAttachmentPreview((prev) =>
+        prev ? { ...prev, uploading: true } : null,
+      );
+
+      const formData = new FormData();
+      formData.append("file", attachmentPreview.file);
+      formData.append("roomId", selectedRoom.id);
+
+      const token = localStorage.getItem("token");
+      const uploadResponse = await fetch(
+        "http://localhost:5000/api/attachment/upload-attachment",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      const attachmentData = await uploadResponse.json();
+      const clientMessageId = `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      const optimisticMessage: Message = {
+        id: clientMessageId,
+        clientMessageId,
+        roomId: selectedRoom.id,
+        senderId: currentUser.id,
+        content: caption,
+        type: "attachment",
+        attachment: attachmentData,
+        timestamp: new Date(),
+        status: "sending",
+        readBy: [currentUser.id],
+        deliveredTo: [],
+        deletedFor: [],
+        deletedForEveryone: false,
+        taggedMessage: replyingTo || undefined,
+      };
+
+      setMessages((prev) => {
+        const roomMessages = prev.get(selectedRoom.id) || [];
+        return new Map(prev).set(selectedRoom.id, [
+          ...roomMessages,
+          optimisticMessage,
+        ]);
+      });
+
+      socketService.getSocket()?.emit("send_attachment_message", {
+        roomId: selectedRoom.id,
+        attachment: attachmentData,
+        caption,
+        clientMessageId,
+        taggedMessage: replyingTo,
+      });
+
+      setAttachmentPreview(null);
+      setMessageInput("");
+      setReplyingTo(null);
+    } catch (error: any) {
+      console.error("Attachment send error:", error);
+      setAttachmentPreview((prev) =>
+        prev
+          ? {
+              ...prev,
+              uploading: false,
+              error: error.message || "Failed to send attachment",
+            }
+          : null,
+      );
+    }
+  };
+
+  const getFileIcon = (mimetype: string) => {
+    if (mimetype.startsWith("image/")) return <ImageIcon className="w-8 h-8" />;
+    if (mimetype.startsWith("video/")) return <Video className="w-8 h-8" />;
+    if (mimetype.includes("pdf")) return <FileText className="w-8 h-8" />;
+    return <File className="w-8 h-8" />;
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
 
   const handleUserClick = useCallback(
     async (clickedUser: User) => {
       if (!selectedModule) return;
-  
+
       if (clickedUser.id === currentUser.id) {
         alert("Cannot chat with yourself!");
         return;
       }
-  
+
       try {
-        const room = await chatAPI.getOrCreateRoom(clickedUser.id, selectedModule.id);
-  
+        const room = await chatAPI.getOrCreateRoom(
+          clickedUser.id,
+          selectedModule.id,
+        );
+
         setSelectedRoom({
           id: room.id,
           moduleId: room.module_id,
@@ -679,15 +844,15 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
           participants: [currentUser.id, clickedUser.id],
           unreadCount: 0,
         });
-  
+
         setShowMobileChat(true);
-  
+
         setUnreadCounts((prev) => {
           const newMap = new Map(prev);
           newMap.set(room.id, 0);
           return newMap;
         });
-  
+
         // Get room messages - backend will filter out cleared messages
         const history = await chatAPI.getRoomMessages(room.id);
         setMessages((prev) => {
@@ -699,11 +864,11 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
               timestamp: new Date(msg.timestamp),
               deliveredTo: msg.deliveredTo || [],
               readBy: msg.readBy || [msg.senderId],
-              type: msg.type || 'text',
+              type: msg.type || "text",
               deletedFor: msg.deletedFor || [],
               deletedForEveryone: msg.deletedForEveryone || false,
               taggedMessage: msg.taggedMessage || null,
-            }))
+            })),
           );
           return newMap;
         });
@@ -711,54 +876,51 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
         alert(error.response?.data?.error || "Failed to create chat");
       }
     },
-    [selectedModule, currentUser]
+    [selectedModule, currentUser],
   );
 
-  const handleGroupClick = useCallback(
-    async (group: any) => {
-      try {
-        setSelectedRoom({
-          id: group.id,
-          moduleId: group.module_id,
-          type: 'group',
-          name: group.name,
-          participants: [],
-          unreadCount: 0,
-        });
-  
-        setShowMobileChat(true);
-  
-        setUnreadCounts((prev) => {
-          const newMap = new Map(prev);
-          newMap.set(group.id, 0);
-          return newMap;
-        });
-  
-        // Get room messages - backend will filter out cleared messages
-        const history = await chatAPI.getRoomMessages(group.id);
-        setMessages((prev) => {
-          const newMap = new Map(prev);
-          newMap.set(
-            group.id,
-            history.map((msg: any) => ({
-              ...msg,
-              timestamp: new Date(msg.timestamp),
-              deliveredTo: msg.deliveredTo || [],
-              readBy: msg.readBy || [msg.senderId],
-              type: msg.type || 'text',
-              deletedFor: msg.deletedFor || [],
-              deletedForEveryone: msg.deletedForEveryone || false,
-              taggedMessage: msg.taggedMessage || null,
-            }))
-          );
-          return newMap;
-        });
-      } catch (error: any) {
-        alert("Failed to open group chat");
-      }
-    },
-    []
-  );
+  const handleGroupClick = useCallback(async (group: any) => {
+    try {
+      setSelectedRoom({
+        id: group.id,
+        moduleId: group.module_id,
+        type: "group",
+        name: group.name,
+        participants: [],
+        unreadCount: 0,
+      });
+
+      setShowMobileChat(true);
+
+      setUnreadCounts((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(group.id, 0);
+        return newMap;
+      });
+
+      // Get room messages - backend will filter out cleared messages
+      const history = await chatAPI.getRoomMessages(group.id);
+      setMessages((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(
+          group.id,
+          history.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+            deliveredTo: msg.deliveredTo || [],
+            readBy: msg.readBy || [msg.senderId],
+            type: msg.type || "text",
+            deletedFor: msg.deletedFor || [],
+            deletedForEveryone: msg.deletedForEveryone || false,
+            taggedMessage: msg.taggedMessage || null,
+          })),
+        );
+        return newMap;
+      });
+    } catch (error: any) {
+      alert("Failed to open group chat");
+    }
+  }, []);
 
   const handleBackToList = () => {
     setShowMobileChat(false);
@@ -767,7 +929,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const getRoomMessages = useCallback(
     (roomId: string) => messages.get(roomId) || [],
-    [messages]
+    [messages],
   );
 
   const getTypingIndicator = useCallback(
@@ -776,7 +938,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       if (!typing || typing.size === 0) return null;
 
       const typingUserIds = Array.from(typing).filter(
-        (id) => id !== currentUser.id
+        (id) => id !== currentUser.id,
       );
       if (typingUserIds.length === 0) return null;
 
@@ -787,10 +949,10 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       return typingNames.length === 1
         ? `${typingNames[0]} is typing...`
         : typingNames.length === 2
-        ? `${typingNames[0]} and ${typingNames[1]} are typing...`
-        : `${typingNames.length} people are typing...`;
+          ? `${typingNames[0]} and ${typingNames[1]} are typing...`
+          : `${typingNames.length} people are typing...`;
     },
-    [typingUsers, currentUser.id, moduleUsers]
+    [typingUsers, currentUser.id, moduleUsers],
   );
 
   const getUserById = useCallback(
@@ -798,8 +960,25 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       if (userId === currentUser.id) return currentUser;
       return moduleUsers.find((u) => u.id === userId);
     },
-    [currentUser, moduleUsers]
+    [currentUser, moduleUsers],
   );
+    const isStudentTeacherRoom = useCallback((): boolean => {
+    if (!selectedRoom || selectedRoom.type !== 'one_to_one') return false;
+    
+    const otherUserId = selectedRoom.participants.find(p => p !== currentUser.id);
+    if (!otherUserId) return false;
+    
+    const otherUser = getUserById(otherUserId);
+    if (!otherUser) return false;
+    
+    const isCurrentUserStudent = currentUser.role === 'student';
+    const isCurrentUserTeacher = currentUser.role === 'teacher';
+    const isOtherUserStudent = otherUser.role === 'student';
+    const isOtherUserTeacher = otherUser.role === 'teacher';
+    
+    return (isCurrentUserStudent && isOtherUserTeacher) || 
+           (isCurrentUserTeacher && isOtherUserStudent);
+  }, [selectedRoom, currentUser, getUserById]);
 
   const getRoomDisplayName = useCallback(
     (room: ChatRoom) => {
@@ -807,7 +986,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       const otherUser = room.participants.find((p) => p !== currentUser.id);
       return getUserById(otherUser!)?.name || "Unknown";
     },
-    [currentUser.id, getUserById]
+    [currentUser.id, getUserById],
   );
 
   const getRoomIcon = useCallback(
@@ -816,7 +995,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       const otherUser = room.participants.find((p) => p !== currentUser.id);
       return getUserById(otherUser!)?.avatar || "👤";
     },
-    [currentUser.id, getUserById]
+    [currentUser.id, getUserById],
   );
 
   const VoiceMessage = ({ message }: { message: Message }) => {
@@ -905,6 +1084,142 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       </div>
     );
   };
+  const AttachmentMessage: React.FC<{
+    message: Message;
+    isCurrentUser: boolean;
+  }> = ({ message, isCurrentUser }) => {
+    const { attachment, content } = message;
+
+    if (!attachment) return null;
+
+    const isImage = attachment.mimetype.startsWith("image/");
+    const isVideo = attachment.mimetype.startsWith("video/");
+    const fileUrl = `http://localhost:5000${attachment.url}`;
+
+    const getFileIconSmall = () => {
+      if (isImage) return <ImageIcon className="w-5 h-5" />;
+      if (isVideo) return <Video className="w-5 h-5" />;
+      if (attachment.mimetype.includes("pdf"))
+        return <FileText className="w-5 h-5" />;
+      return <File className="w-5 h-5" />;
+    };
+
+    const downloadFile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(fileUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = attachment.originalName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error("Download error:", error);
+      }
+    };
+
+    return (
+      <div className="max-w-sm">
+        {isImage && (
+          <div className="mb-2 rounded-lg overflow-hidden">
+            <img
+              src={fileUrl}
+              alt={attachment.originalName}
+              className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => window.open(fileUrl, "_blank")}
+              style={{ maxHeight: "300px" }}
+            />
+          </div>
+        )}
+
+        {isVideo && (
+          <div className="mb-2 rounded-lg overflow-hidden">
+            <video
+              controls
+              className="max-w-full h-auto rounded-lg"
+              style={{ maxHeight: "300px" }}
+            >
+              <source src={fileUrl} type={attachment.mimetype} />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        )}
+
+        {!isImage && !isVideo && (
+          <div
+            className={`
+            flex items-center gap-3 p-3 rounded-lg
+            ${
+              isCurrentUser
+                ? "bg-blue-600 text-white"
+                : "bg-white border border-gray-200 text-gray-900"
+            }
+          `}
+          >
+            <div
+              className={`
+              flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
+              ${isCurrentUser ? "bg-blue-500" : "bg-gray-100"}
+            `}
+            >
+              {getFileIconSmall()}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p
+                className={`text-sm font-medium truncate ${isCurrentUser ? "text-white" : "text-gray-900"}`}
+              >
+                {attachment.originalName}
+              </p>
+              <p
+                className={`text-xs ${isCurrentUser ? "text-blue-100" : "text-gray-500"}`}
+              >
+                {formatFileSize(attachment.size)}
+              </p>
+            </div>
+
+            <button
+              onClick={downloadFile}
+              className={`
+                flex-shrink-0 p-2 rounded-lg transition-colors
+                ${
+                  isCurrentUser
+                    ? "hover:bg-blue-500 text-white"
+                    : "hover:bg-gray-100 text-gray-600"
+                }
+              `}
+              title="Download"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {content && (
+          <p
+            className={`
+            mt-2 text-sm px-3 py-2 rounded-lg
+            ${
+              isCurrentUser
+                ? "bg-blue-600 text-white"
+                : "bg-white border border-gray-200 text-gray-900"
+            }
+          `}
+          >
+            {content}
+          </p>
+        )}
+      </div>
+    );
+  };
   const getRoomIdForUser = useCallback(
     (userId: string): string | null => {
       // Try to find existing room in messages
@@ -927,7 +1242,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       }
       return null;
     },
-    [messages, currentUser.id]
+    [messages, currentUser.id],
   );
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
@@ -962,7 +1277,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
                   value={selectedModule?.id || ""}
                   onChange={(e) =>
                     setSelectedModule(
-                      modules.find((m) => m.id === e.target.value) || null
+                      modules.find((m) => m.id === e.target.value) || null,
                     )
                   }
                   className="w-full bg-blue-800 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium appearance-none cursor-pointer hover:bg-blue-900 transition-colors"
@@ -1129,73 +1444,79 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
       >
         {selectedRoom ? (
           <>
-           {/* Chat Header */}
-<div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative">
-  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-    <button
-      onClick={handleBackToList}
-      className="md:hidden p-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-    >
-      <ArrowLeft size={20} />
-    </button>
-    <div className="text-2xl sm:text-3xl flex-shrink-0">{getRoomIcon(selectedRoom)}</div>
-    <div className="min-w-0 flex-1">
-      <h2 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
-        {getRoomDisplayName(selectedRoom)}
-      </h2>
-      <div className="text-xs text-gray-500">
-        {selectedRoom.type === 'group' ? (
-          <span>Group Chat</span>
-        ) : (
-          (() => {
-            const otherUser = getUserById(selectedRoom.participants.find((p) => p !== currentUser.id)!);
-            return otherUser?.isOnline ? (
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                Online
-              </span>
-            ) : (
-              <span>Offline</span>
-            );
-          })()
-        )}
-      </div>
-    </div>
-  </div>
+            {/* Chat Header */}
+            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <button
+                  onClick={handleBackToList}
+                  className="md:hidden p-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="text-2xl sm:text-3xl flex-shrink-0">
+                  {getRoomIcon(selectedRoom)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                    {getRoomDisplayName(selectedRoom)}
+                  </h2>
+                  <div className="text-xs text-gray-500">
+                    {selectedRoom.type === "group" ? (
+                      <span>Group Chat</span>
+                    ) : (
+                      (() => {
+                        const otherUser = getUserById(
+                          selectedRoom.participants.find(
+                            (p) => p !== currentUser.id,
+                          )!,
+                        );
+                        return otherUser?.isOnline ? (
+                          <span className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            Online
+                          </span>
+                        ) : (
+                          <span>Offline</span>
+                        );
+                      })()
+                    )}
+                  </div>
+                </div>
+              </div>
 
-  {/* Three-Dot Menu Button */}
-  <div className="relative flex-shrink-0">
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        setShowChatMenu(!showChatMenu);
-      }}
-      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-      title="More options"
-    >
-      <MoreVertical size={20} className="text-gray-600" />
-    </button>
+              {/* Three-Dot Menu Button */}
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowChatMenu(!showChatMenu);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title="More options"
+                >
+                  <MoreVertical size={20} className="text-gray-600" />
+                </button>
 
-    {/* Dropdown Menu */}
-    {showChatMenu && (
-      <div
-        className="absolute right-0 top-12 bg-white shadow-lg rounded-lg py-2 z-50 border border-gray-200 min-w-[180px]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={() => {
-            setShowClearConfirm(true);
-            setShowChatMenu(false);
-          }}
-          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-3 text-red-600"
-        >
-          <Trash size={16} />
-          Clear Chat
-        </button>
-      </div>
-    )}
-  </div>
-</div>
+                {/* Dropdown Menu */}
+                {showChatMenu && (
+                  <div
+                    className="absolute right-0 top-12 bg-white shadow-lg rounded-lg py-2 z-50 border border-gray-200 min-w-[180px]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => {
+                        setShowClearConfirm(true);
+                        setShowChatMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-3 text-red-600"
+                    >
+                      <Trash size={16} />
+                      Clear Chat
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50">
@@ -1221,7 +1542,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
 
                     // Check if message is deleted
                     const isDeletedForMe = message.deletedFor?.includes(
-                      currentUser.id
+                      currentUser.id,
                     );
                     const isDeletedForEveryone = message.deletedForEveryone;
 
@@ -1341,10 +1662,16 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
                             )}
 
                             {/* Message Content */}
+                            {/* Message Content */}
                             {isDeletedForEveryone ? (
                               <span className="text-sm sm:text-base italic opacity-60">
                                 🚫 This message was deleted
                               </span>
+                            ) : message.type === "attachment" ? (
+                              <AttachmentMessage
+                                message={message}
+                                isCurrentUser={isCurrentUser}
+                              />
                             ) : message.type === "audio" ? (
                               <VoiceMessage message={message} />
                             ) : (
@@ -1359,7 +1686,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
                               {
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              }
+                              },
                             )}
                             {getStatusIcon(message)}
                           </div>
@@ -1438,47 +1765,118 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
                   )}
               </div>
             )}
-{/* Clear Chat Confirmation Dialog */}
-{showClearConfirm && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div 
-      className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-start gap-4 mb-4">
-        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <Trash className="text-red-600" size={20} />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Clear Chat History?
-          </h3>
-          <p className="text-sm text-gray-600">
-            {selectedRoom?.type === 'group' 
-              ? `This will delete all messages in "${getRoomDisplayName(selectedRoom)}" from your device. This action cannot be undone.`
-              : `This will delete all messages with ${getRoomDisplayName(selectedRoom)} from your device. This action cannot be undone.`
-            }
-          </p>
-        </div>
-      </div>
+            {/* Clear Chat Confirmation Dialog */}
+            {showClearConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div
+                  className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Trash className="text-red-600" size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Clear Chat History?
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {selectedRoom?.type === "group"
+                          ? `This will delete all messages in "${getRoomDisplayName(selectedRoom)}" from your device. This action cannot be undone.`
+                          : `This will delete all messages with ${getRoomDisplayName(selectedRoom)} from your device. This action cannot be undone.`}
+                      </p>
+                    </div>
+                  </div>
 
-      <div className="flex gap-3 justify-end">
-        <button
-          onClick={() => setShowClearConfirm(false)}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleClearChat}
-          className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-        >
-          Clear Chat
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleClearChat}
+                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    >
+                      Clear Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            {/* Attachment Preview */}
+            {attachmentPreview && (
+              <div className="bg-gray-50 border-t border-gray-200 px-4 py-3">
+                <div className="flex items-start gap-3 bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex-shrink-0">
+                    {attachmentPreview.preview ? (
+                      <img
+                        src={attachmentPreview.preview}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center text-blue-600">
+                        {getFileIcon(attachmentPreview.file.type)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {attachmentPreview.file.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(attachmentPreview.file.size)}
+                    </p>
+                    {attachmentPreview.error && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {attachmentPreview.error}
+                      </p>
+                    )}
+                    {attachmentPreview.uploading && (
+                      <p className="text-xs text-blue-600 mt-1">Uploading...</p>
+                    )}
+                  </div>
+
+                  {!attachmentPreview.uploading && (
+                    <button
+                      onClick={() => {
+                        if (attachmentPreview.preview) {
+                          URL.revokeObjectURL(attachmentPreview.preview);
+                        }
+                        setAttachmentPreview(null);
+                      }}
+                      className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Add a caption (optional)"
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={attachmentPreview.uploading}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && !e.shiftKey && handleSendMessage()
+                  }
+                />
+              </div>
+            )}
+
             {/* Reply Bar */}
             {replyingTo && (
               <div className="bg-gray-100 border-t border-gray-200 px-4 py-2 flex items-center justify-between">
@@ -1503,6 +1901,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
             )}
 
             {/* Message Input */}
+            {/* Message Input */}
             <div className="bg-white border-t border-gray-200 p-2 sm:p-3 md:p-4 flex-shrink-0">
               <div className="flex gap-2 sm:gap-3">
                 <input
@@ -1512,21 +1911,44 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
                   onKeyPress={(e) =>
                     e.key === "Enter" && !e.shiftKey && handleSendMessage()
                   }
-                  placeholder="Type a message..."
-                  className="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0"
+                  placeholder={
+                    attachmentPreview
+                      ? "Add a caption (optional)"
+                      : "Type a message..."
+                  }
+                  disabled={attachmentPreview?.uploading}
+                  className="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 disabled:bg-gray-100"
                 />
 
-                <button
-                  onClick={() => setShowVoiceRecorder(true)}
-                  className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center flex-shrink-0"
-                  title="Send voice message"
-                >
-                  <Mic size={16} className="sm:w-[18px] sm:h-[18px]" />
-                </button>
+                {/* Paperclip button - only show in student-teacher chats */}
+                {isStudentTeacherRoom() && !attachmentPreview && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center flex-shrink-0"
+                    title="Attach file (student-teacher only)"
+                  >
+                    <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  </button>
+                )}
+
+                {/* Voice button - hide when attachment is selected */}
+                {!attachmentPreview && (
+                  <button
+                    onClick={() => setShowVoiceRecorder(true)}
+                    className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center flex-shrink-0"
+                    title="Send voice message"
+                  >
+                    <Mic size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  </button>
+                )}
 
                 <button
                   onClick={handleSendMessage}
-                  disabled={!messageInput.trim()}
+                  disabled={
+                    attachmentPreview
+                      ? attachmentPreview.uploading
+                      : !messageInput.trim()
+                  }
                   className="px-3 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 font-medium flex-shrink-0"
                 >
                   <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
@@ -1535,7 +1957,7 @@ const [showClearConfirm, setShowClearConfirm] = useState(false);
                   </span>
                 </button>
               </div>
-            </div>
+            </div>  
 
             {/* Voice Recorder Modal */}
             {showVoiceRecorder && (
