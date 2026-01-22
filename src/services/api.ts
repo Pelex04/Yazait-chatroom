@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://chatroom-0u60.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -105,6 +105,7 @@ export const chatAPI = {
     const response = await api.get('/chat/module-groups');
     return response.data;
   },
+
 };
 
 export default api;

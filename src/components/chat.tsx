@@ -561,7 +561,7 @@ export default function LearningPlatformChat({
 
       const token = localStorage.getItem("token");
       const response = await fetch(
-        "  http://localhost:5000/api/voice/upload-voice",
+        "  https://chatroom-0u60.onrender.com/api/voice/upload-voice",
         {
           method: "POST",
           headers: {
@@ -738,7 +738,7 @@ export default function LearningPlatformChat({
 
       const token = localStorage.getItem("token");
       const uploadResponse = await fetch(
-        "http://localhost:5000/api/attachment/upload-attachment",
+        "https://chatroom-0u60.onrender.com/api/attachment/upload-attachment",
         {
           method: "POST",
           headers: {
@@ -1073,7 +1073,7 @@ export default function LearningPlatformChat({
 
         <audio
           ref={audioRef}
-          src={`http://localhost:5000${message.audioUrl}`}
+          src={`https://chatroom-0u60.onrender.com${message.audioUrl}`}
           onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
           onEnded={() => {
             setIsPlaying(false);
@@ -1094,7 +1094,7 @@ export default function LearningPlatformChat({
 
     const isImage = attachment.mimetype.startsWith("image/");
     const isVideo = attachment.mimetype.startsWith("video/");
-    const fileUrl = `http://localhost:5000${attachment.url}`;
+    const fileUrl = `https://chatroom-0u60.onrender.com${attachment.url}`;
 
     const getFileIconSmall = () => {
       if (isImage) return <ImageIcon className="w-5 h-5" />;
