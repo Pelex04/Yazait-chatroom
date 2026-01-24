@@ -59,7 +59,7 @@ interface TaggedMessage {
   senderId: string;
   senderName: string;
   content: string;
-  type: "text" | "audio"| "attachment";
+  type: "text" | "audio" | "attachment";
 }
 interface AttachmentPreview {
   file: File;
@@ -697,7 +697,6 @@ export default function LearningPlatformChat({
     setShowClearConfirm(false);
     setShowChatMenu(false);
   }, [selectedRoom]);
-  
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -962,22 +961,26 @@ export default function LearningPlatformChat({
     },
     [currentUser, moduleUsers],
   );
-    const isStudentTeacherRoom = useCallback((): boolean => {
-    if (!selectedRoom || selectedRoom.type !== 'one_to_one') return false;
-    
-    const otherUserId = selectedRoom.participants.find(p => p !== currentUser.id);
+  const isStudentTeacherRoom = useCallback((): boolean => {
+    if (!selectedRoom || selectedRoom.type !== "one_to_one") return false;
+
+    const otherUserId = selectedRoom.participants.find(
+      (p) => p !== currentUser.id,
+    );
     if (!otherUserId) return false;
-    
+
     const otherUser = getUserById(otherUserId);
     if (!otherUser) return false;
-    
-    const isCurrentUserStudent = currentUser.role === 'student';
-    const isCurrentUserTeacher = currentUser.role === 'teacher';
-    const isOtherUserStudent = otherUser.role === 'student';
-    const isOtherUserTeacher = otherUser.role === 'teacher';
-    
-    return (isCurrentUserStudent && isOtherUserTeacher) || 
-           (isCurrentUserTeacher && isOtherUserStudent);
+
+    const isCurrentUserStudent = currentUser.role === "student";
+    const isCurrentUserTeacher = currentUser.role === "teacher";
+    const isOtherUserStudent = otherUser.role === "student";
+    const isOtherUserTeacher = otherUser.role === "teacher";
+
+    return (
+      (isCurrentUserStudent && isOtherUserTeacher) ||
+      (isCurrentUserTeacher && isOtherUserStudent)
+    );
   }, [selectedRoom, currentUser, getUserById]);
 
   const getRoomDisplayName = useCallback(
@@ -1250,7 +1253,7 @@ export default function LearningPlatformChat({
       <div
         className={`${
           showMobileChat ? "hidden md:flex" : "flex"
-        } w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex-col`}
+        } w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex-col relative`}
       >
         <div className="p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0">
           <div className="flex items-center justify-between text-white mb-3">
@@ -1434,18 +1437,25 @@ export default function LearningPlatformChat({
             </>
           )}
         </div>
+        {/* Powered by Rasta Kadema Footer */}
+        <div className="p-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+          <p className="text-xs text-center text-gray-500">
+            Powered by{" "}
+            <span className="font-semibold text-gray-700">Rasta Kadema</span>
+          </p>
+        </div>
       </div>
 
       {/* Chat Area */}
       <div
         className={`${
           showMobileChat ? "flex" : "hidden md:flex"
-        } flex-1 flex-col min-w-0`}
+        } flex-1 flex-col min-w-0 relative`}
       >
         {selectedRoom ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative">
+            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative sticky top-0 z-10">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
                   onClick={handleBackToList}
@@ -1519,7 +1529,10 @@ export default function LearningPlatformChat({
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50">
+            <div
+              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50"
+              style={{ paddingBottom: "80px" }}
+            >
               {getRoomMessages(selectedRoom.id).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400">
                   <MessageCircle size={40} className="sm:w-12 sm:h-12 mb-4" />
@@ -1902,7 +1915,7 @@ export default function LearningPlatformChat({
 
             {/* Message Input */}
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-2 sm:p-3 md:p-4 flex-shrink-0">
+            <div className="bg-white border-t border-gray-200 p-2 sm:p-3 md:p-4 flex-shrink-0 sticky bottom-0 z-10">
               <div className="flex gap-2 sm:gap-3">
                 <input
                   type="text"
@@ -1957,7 +1970,7 @@ export default function LearningPlatformChat({
                   </span>
                 </button>
               </div>
-            </div>  
+            </div>
 
             {/* Voice Recorder Modal */}
             {showVoiceRecorder && (
