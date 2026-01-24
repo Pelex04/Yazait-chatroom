@@ -1450,12 +1450,12 @@ export default function LearningPlatformChat({
       <div
         className={`${
           showMobileChat ? "flex" : "hidden md:flex"
-        } flex-1 flex-col min-w-0 relative`}
+        } flex-1 flex-col min-w-0 overflow-hidden`}
       >
         {selectedRoom ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative sticky top-0 z-10">
+            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
                   onClick={handleBackToList}
@@ -1915,7 +1915,7 @@ export default function LearningPlatformChat({
 
             {/* Message Input */}
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-2 sm:p-3 md:p-4 flex-shrink-0 sticky bottom-0 z-10">
+           <div className="bg-white border-t border-gray-200 p-2 sm:p-3 md:p-4 flex-shrink-0">
               <div className="flex gap-2 sm:gap-3">
                 <input
                   type="text"
