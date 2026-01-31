@@ -1,4 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Chatroom/src/App.tsx - DEBUG VERSION
+// Add console.logs to see what's happening
+
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/Login";
@@ -20,27 +24,24 @@ function App() {
       if (token) {
         try {
           if (storedUser) {
-            console.log('✅ SSO user found in localStorage');
+            // SSO login - user already in localStorage
             const userData = JSON.parse(storedUser);
             setCurrentUser(userData);
             setIsAuthenticated(true);
             socketService.connect(token);
           } else {
-            console.log('🔄 Fetching user data from API...');
+            // Regular login - fetch from API
             const userData = await authAPI.getCurrentUser();
             setCurrentUser(userData.user);
             setIsAuthenticated(true);
             socketService.connect(token);
           }
-        } catch (error: any) {
-          console.error('❌ Auth error:', error);
+        } catch (error) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setIsAuthenticated(false);
-          setCurrentUser(null);
         }
       }
-
       setIsLoading(false);
     };
 
@@ -56,22 +57,38 @@ function App() {
   };
 
   const handleLogout = () => {
+    console.log("🔴 LOGOUT CLICKED");
+    
+    // Check platform_url BEFORE clearing localStorage
+    const platformUrl = localStorage.getItem("platform_url");
+    console.log("🔍 Platform URL:", platformUrl);
+    console.log("📦 All localStorage:", {
+      token: localStorage.getItem("token"),
+      user: localStorage.getItem("user"),
+      platform_url: platformUrl
+    });
+    
+    // Disconnect socket
+    socketService.disconnect();
+    
+    // Clear auth state
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    socketService.disconnect();
     setIsAuthenticated(false);
     setCurrentUser(null);
+    
+    if (platformUrl) {
+      console.log("✅ SSO User - Redirecting to:", platformUrl);
+      localStorage.removeItem("platform_url");
+      window.location.href = platformUrl;
+    } else {
+      console.log("❌ Direct Login User - Showing login page");
+      // React Router will automatically show Login component
+    }
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   return (
