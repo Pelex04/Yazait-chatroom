@@ -1259,7 +1259,7 @@ export default function LearningPlatformChat({
           <div className="flex items-center justify-between text-white mb-3">
             <div className="flex items-center gap-2">
               <MessageCircle size={20} className="sm:w-6 sm:h-6" />
-              <h1 className="text-base sm:text-lg font-semibold">YazaIt</h1>
+              <h1 className="text-base sm:text-lg font-semibold">ChezaX</h1>
             </div>
             <button
               onClick={onLogout}
