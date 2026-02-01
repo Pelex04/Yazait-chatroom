@@ -45,7 +45,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         {/* Logo */}
         <div className="mb-4">
           <div className="bg-slate-900 text-white px-4 py-1.5 rounded-md text-sm font-semibold tracking-wide">
-            YAZAIT <span className="text-yellow-400">MALAWI</span>
+            CHEZAX <span className="text-yellow-400">MALAWI</span>
           </div>
         </div>
 
