@@ -16,7 +16,6 @@ import {
   Send,
   ChevronDown,
   ChevronRight,
-  LogOut,
   Mic,
   ArrowLeft,
   Reply,
@@ -112,7 +111,7 @@ interface LearningPlatformChatProps {
 
 export default function LearningPlatformChat({
   currentUser: propCurrentUser,
-  onLogout,
+  //onLogout,
 }: LearningPlatformChatProps) {
   const currentUser: User = useMemo(
     () => ({
