@@ -29,6 +29,12 @@ import {
   FileText,
   Image as ImageIcon,
   Video,
+  Search,
+  Phone,
+  VideoIcon,
+  //Info,
+  CheckCheck,
+  Check,
 } from "lucide-react";
 import socketService from "../services/socket";
 import { chatAPI, moduleAPI } from "../services/api";
@@ -61,12 +67,14 @@ interface TaggedMessage {
   content: string;
   type: "text" | "audio" | "attachment";
 }
+
 interface AttachmentPreview {
   file: File;
   preview?: string;
   uploading: boolean;
   error?: string;
 }
+
 interface Message {
   id: string;
   clientMessageId?: string;
@@ -145,8 +153,8 @@ export default function LearningPlatformChat({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [attachmentPreview, setAttachmentPreview] =
     useState<AttachmentPreview | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // NEW: Context menu and reply states
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -198,6 +206,7 @@ export default function LearningPlatformChat({
     };
     fetchModuleData();
   }, [selectedModule]);
+
   useEffect(() => {
     const handleClickOutside = () => setShowChatMenu(false);
     if (showChatMenu) {
@@ -205,6 +214,7 @@ export default function LearningPlatformChat({
       return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [showChatMenu]);
+
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) return;
@@ -231,7 +241,6 @@ export default function LearningPlatformChat({
         return prev;
       });
 
-      // INCREMENT unread count (was missing the increment logic)
       if (message.senderId !== currentUser.id) {
         setUnreadCounts((prev) => {
           const newMap = new Map(prev);
@@ -240,11 +249,6 @@ export default function LearningPlatformChat({
         });
       }
     };
-
-    // ============================================
-    // ALSO UPDATE: handleNewMessage
-    // Only clear unread if in current room
-    // ============================================
 
     const handleNewMessage = (message: any) => {
       setMessages((prev) => {
@@ -296,7 +300,6 @@ export default function LearningPlatformChat({
         ]);
       });
 
-      // Clear unread ONLY if message is in currently selected room
       if (
         selectedRoom &&
         message.roomId === selectedRoom.id &&
@@ -310,7 +313,6 @@ export default function LearningPlatformChat({
       }
     };
 
-    // NEW: Handle message deletion
     const handleMessageDeleted = ({
       messageId,
       roomId,
@@ -407,6 +409,7 @@ export default function LearningPlatformChat({
         }, 3000);
       }
     };
+
     const handleChatCleared = ({ roomId, success, clearedCount }: any) => {
       if (success) {
         console.log(
@@ -414,9 +417,10 @@ export default function LearningPlatformChat({
         );
       }
     };
+
     socket.on("new_message", handleNewMessage);
     socket.on("new_message_notification", handleNewMessageNotification);
-    socket.on("message_deleted", handleMessageDeleted); // NEW
+    socket.on("message_deleted", handleMessageDeleted);
     socket.on("messages_status_update", handleStatusUpdate);
     socket.on("user_presence_changed", handlePresenceChanged);
     socket.on("user_typing", handleUserTyping);
@@ -425,7 +429,7 @@ export default function LearningPlatformChat({
     return () => {
       socket.off("new_message", handleNewMessage);
       socket.off("new_message_notification", handleNewMessageNotification);
-      socket.off("message_deleted", handleMessageDeleted); // NEW
+      socket.off("message_deleted", handleMessageDeleted);
       socket.off("messages_status_update", handleStatusUpdate);
       socket.off("user_presence_changed", handlePresenceChanged);
       socket.off("user_typing", handleUserTyping);
@@ -433,7 +437,6 @@ export default function LearningPlatformChat({
     };
   }, [currentUser.id, selectedRoom?.id]);
 
-  // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => setContextMenu(null);
     if (contextMenu) {
@@ -486,7 +489,6 @@ export default function LearningPlatformChat({
   }, [moduleUsers, currentUser]);
 
   const handleSendMessage = useCallback(() => {
-    // Check if we're sending an attachment
     if (attachmentPreview) {
       sendAttachment(messageInput.trim());
       return;
@@ -561,7 +563,7 @@ export default function LearningPlatformChat({
 
       const token = localStorage.getItem("token");
       const response = await fetch(
-        "  http://localhost:5000/api/voice/upload-voice",
+        "http://localhost:5000/api/voice/upload-voice",
         {
           method: "POST",
           headers: {
@@ -640,7 +642,6 @@ export default function LearningPlatformChat({
     [selectedRoom],
   );
 
-  // NEW: Handle context menu (right-click or long-press)
   const handleMessageContextMenu = useCallback(
     (e: React.MouseEvent, message: Message) => {
       e.preventDefault();
@@ -653,7 +654,6 @@ export default function LearningPlatformChat({
     [],
   );
 
-  // NEW: Handle reply
   const handleReply = useCallback((message: Message) => {
     const sender = getUserById(message.senderId);
     setReplyingTo({
@@ -666,7 +666,6 @@ export default function LearningPlatformChat({
     setContextMenu(null);
   }, []);
 
-  // NEW: Handle delete
   const handleDelete = useCallback(
     (message: Message, deleteForEveryone: boolean) => {
       if (!selectedRoom) return;
@@ -680,20 +679,18 @@ export default function LearningPlatformChat({
     },
     [selectedRoom],
   );
+
   const handleClearChat = useCallback(() => {
     if (!selectedRoom) return;
 
-    // Emit socket event to clear chat on server
     socketService.getSocket()?.emit("clear_chat", { roomId: selectedRoom.id });
 
-    // Immediately clear messages locally for instant UX
     setMessages((prev) => {
       const newMap = new Map(prev);
       newMap.set(selectedRoom.id, []);
       return newMap;
     });
 
-    // Close dialogs
     setShowClearConfirm(false);
     setShowChatMenu(false);
   }, [selectedRoom]);
@@ -852,7 +849,6 @@ export default function LearningPlatformChat({
           return newMap;
         });
 
-        // Get room messages - backend will filter out cleared messages
         const history = await chatAPI.getRoomMessages(room.id);
         setMessages((prev) => {
           const newMap = new Map(prev);
@@ -897,7 +893,6 @@ export default function LearningPlatformChat({
         return newMap;
       });
 
-      // Get room messages - backend will filter out cleared messages
       const history = await chatAPI.getRoomMessages(group.id);
       setMessages((prev) => {
         const newMap = new Map(prev);
@@ -961,6 +956,7 @@ export default function LearningPlatformChat({
     },
     [currentUser, moduleUsers],
   );
+
   const isStudentTeacherRoom = useCallback((): boolean => {
     if (!selectedRoom || selectedRoom.type !== "one_to_one") return false;
 
@@ -1001,6 +997,40 @@ export default function LearningPlatformChat({
     [currentUser.id, getUserById],
   );
 
+  const getRoomIdForUser = useCallback(
+    (userId: string): string | null => {
+      for (const [roomId, roomMessages] of messages.entries()) {
+        if (roomMessages.length > 0) {
+          const allSenders = new Set(roomMessages.map((m) => m.senderId));
+
+          if (
+            allSenders.size === 2 &&
+            allSenders.has(currentUser.id) &&
+            allSenders.has(userId)
+          ) {
+            return roomId;
+          }
+        }
+      }
+      return null;
+    },
+    [messages, currentUser.id],
+  );
+
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return filteredModuleUsers;
+
+    const query = searchQuery.toLowerCase();
+    return {
+      students: filteredModuleUsers.students.filter((u) =>
+        u.name.toLowerCase().includes(query),
+      ),
+      teachers: filteredModuleUsers.teachers.filter((u) =>
+        u.name.toLowerCase().includes(query),
+      ),
+    };
+  }, [filteredModuleUsers, searchQuery]);
+
   const VoiceMessage = ({ message }: { message: Message }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -1032,25 +1062,17 @@ export default function LearningPlatformChat({
     };
 
     return (
-      <div className="flex items-center gap-2 sm:gap-3 min-w-[180px] sm:min-w-[200px]">
+      <div className="flex items-center gap-3 min-w-[200px]">
         <button
           onClick={togglePlay}
-          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center hover:bg-opacity-30 transition-all flex-shrink-0"
+          className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center hover:bg-opacity-30 transition-all flex-shrink-0 backdrop-blur-sm"
         >
           {isPlaying ? (
-            <svg
-              className="w-4 h-4 sm:w-5 sm:h-5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" />
             </svg>
           ) : (
-            <svg
-              className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+            <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M6 4l10 6-10 6V4z" />
             </svg>
           )}
@@ -1062,9 +1084,7 @@ export default function LearningPlatformChat({
               <div
                 className="h-full bg-white rounded-full transition-all"
                 style={{
-                  width: `${
-                    (currentTime / (message.audioDuration || 1)) * 100
-                  }%`,
+                  width: `${(currentTime / (message.audioDuration || 1)) * 100}%`,
                 }}
               />
             </div>
@@ -1087,6 +1107,7 @@ export default function LearningPlatformChat({
       </div>
     );
   };
+
   const AttachmentMessage: React.FC<{
     message: Message;
     isCurrentUser: boolean;
@@ -1132,7 +1153,7 @@ export default function LearningPlatformChat({
     return (
       <div className="max-w-sm">
         {isImage && (
-          <div className="mb-2 rounded-lg overflow-hidden">
+          <div className="mb-2 rounded-xl overflow-hidden border border-white border-opacity-20">
             <img
               src={fileUrl}
               alt={attachment.originalName}
@@ -1144,10 +1165,10 @@ export default function LearningPlatformChat({
         )}
 
         {isVideo && (
-          <div className="mb-2 rounded-lg overflow-hidden">
+          <div className="mb-2 rounded-xl overflow-hidden border border-white border-opacity-20">
             <video
               controls
-              className="max-w-full h-auto rounded-lg"
+              className="max-w-full h-auto rounded-xl"
               style={{ maxHeight: "300px" }}
             >
               <source src={fileUrl} type={attachment.mimetype} />
@@ -1159,18 +1180,18 @@ export default function LearningPlatformChat({
         {!isImage && !isVideo && (
           <div
             className={`
-            flex items-center gap-3 p-3 rounded-lg
+            flex items-center gap-3 p-3 rounded-xl backdrop-blur-sm
             ${
               isCurrentUser
-                ? "bg-blue-600 text-white"
-                : "bg-white border border-gray-200 text-gray-900"
+                ? "bg-white bg-opacity-10"
+                : "bg-slate-100 border border-slate-200"
             }
           `}
           >
             <div
               className={`
               flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
-              ${isCurrentUser ? "bg-blue-500" : "bg-gray-100"}
+              ${isCurrentUser ? "bg-white bg-opacity-20" : "bg-slate-200"}
             `}
             >
               {getFileIconSmall()}
@@ -1178,12 +1199,12 @@ export default function LearningPlatformChat({
 
             <div className="flex-1 min-w-0">
               <p
-                className={`text-sm font-medium truncate ${isCurrentUser ? "text-white" : "text-gray-900"}`}
+                className={`text-sm font-medium truncate ${isCurrentUser ? "text-white" : "text-slate-900"}`}
               >
                 {attachment.originalName}
               </p>
               <p
-                className={`text-xs ${isCurrentUser ? "text-blue-100" : "text-gray-500"}`}
+                className={`text-xs ${isCurrentUser ? "text-white text-opacity-70" : "text-slate-500"}`}
               >
                 {formatFileSize(attachment.size)}
               </p>
@@ -1195,8 +1216,8 @@ export default function LearningPlatformChat({
                 flex-shrink-0 p-2 rounded-lg transition-colors
                 ${
                   isCurrentUser
-                    ? "hover:bg-blue-500 text-white"
-                    : "hover:bg-gray-100 text-gray-600"
+                    ? "hover:bg-white hover:bg-opacity-20 text-white"
+                    : "hover:bg-slate-200 text-slate-600"
                 }
               `}
               title="Download"
@@ -1209,11 +1230,11 @@ export default function LearningPlatformChat({
         {content && (
           <p
             className={`
-            mt-2 text-sm px-3 py-2 rounded-lg
+            mt-2 text-sm px-3 py-2 rounded-xl
             ${
               isCurrentUser
-                ? "bg-blue-600 text-white"
-                : "bg-white border border-gray-200 text-gray-900"
+                ? "bg-white bg-opacity-10 text-white"
+                : "bg-slate-100 text-slate-900"
             }
           `}
           >
@@ -1223,56 +1244,40 @@ export default function LearningPlatformChat({
       </div>
     );
   };
-  const getRoomIdForUser = useCallback(
-    (userId: string): string | null => {
-      // Try to find existing room in messages
-      for (const [roomId, roomMessages] of messages.entries()) {
-        if (roomMessages.length > 0) {
-          //const room = roomMessages[0];
-          // Check if this is a one-on-one room between currentUser and this user
-          //const participants = [room.senderId];
-          // Get other messages to identify all participants
-          const allSenders = new Set(roomMessages.map((m) => m.senderId));
 
-          if (
-            allSenders.size === 2 &&
-            allSenders.has(currentUser.id) &&
-            allSenders.has(userId)
-          ) {
-            return roomId;
-          }
-        }
-      }
-      return null;
-    },
-    [messages, currentUser.id],
-  );
   return (
-    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 font-[Inter,system-ui,Segoe_UI,Roboto] overflow-hidden">
       {/* Sidebar */}
       <div
         className={`${
           showMobileChat ? "hidden md:flex" : "flex"
-        } w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex-col relative`}
+        } w-full md:w-80 lg:w-96 bg-white flex-col relative shadow-xl border-r border-slate-200`}
       >
-        <div className="p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0">
-          <div className="flex items-center justify-between text-white mb-3">
-            <div className="flex items-center gap-2">
-              <MessageCircle size={20} className="sm:w-6 sm:h-6" />
-              <h1 className="text-base sm:text-lg font-semibold">ChezaX</h1>
+        {/* Header */}
+        <div className="p-4 border-b border-slate-200 bg-slate-900 flex-shrink-0">
+          <div className="flex items-center justify-between text-white mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
+                <MessageCircle size={18} className="text-slate-900" />
+              </div>
+              <h1 className="text-lg font-bold tracking-tight">
+                CHEZA<span className="text-yellow-400">X</span>
+              </h1>
             </div>
             <button
               onClick={onLogout}
-              className="hover:bg-blue-800 p-1.5 rounded-lg transition-colors"
+              className="hover:bg-slate-800 p-2 rounded-lg transition-colors"
+              title="Logout"
             >
-              <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <LogOut size={18} />
             </button>
           </div>
 
+          {/* Module Selector */}
           <div className="relative">
             {loadingModules ? (
-              <div className="w-full bg-blue-800 text-white px-3 py-2 rounded-lg text-sm text-center">
-                Loading...
+              <div className="w-full bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm text-center">
+                Loading modules...
               </div>
             ) : (
               <>
@@ -1283,7 +1288,7 @@ export default function LearningPlatformChat({
                       modules.find((m) => m.id === e.target.value) || null,
                     )
                   }
-                  className="w-full bg-blue-800 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium appearance-none cursor-pointer hover:bg-blue-900 transition-colors"
+                  className="w-full bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium appearance-none cursor-pointer hover:bg-slate-700 transition-colors border border-slate-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 >
                   {modules.map((module) => (
                     <option key={module.id} value={module.id}>
@@ -1292,7 +1297,7 @@ export default function LearningPlatformChat({
                   ))}
                 </select>
                 <ChevronDown
-                  className="absolute right-3 top-2.5 pointer-events-none text-white"
+                  className="absolute right-3 top-3 pointer-events-none text-white"
                   size={16}
                 />
               </>
@@ -1300,47 +1305,59 @@ export default function LearningPlatformChat({
           </div>
         </div>
 
-        <div className="flex-1 p-3 sm:p-4 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-3 text-gray-700">
-            <Users size={16} className="sm:w-[18px] sm:h-[18px]" />
-            <h2 className="font-semibold text-sm">Chats</h2>
+        {/* Search */}
+        <div className="p-4 border-b border-slate-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+            />
           </div>
+        </div>
 
+        {/* Chats List */}
+        <div className="flex-1 overflow-y-auto">
           {loadingUsers ? (
-            <div className="text-center text-gray-400 text-sm py-4">
-              Loading...
+            <div className="text-center text-slate-400 text-sm py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto mb-2"></div>
+              Loading chats...
             </div>
           ) : (
-            <>
+            <div className="p-2">
+              {/* Groups */}
               {moduleGroups.length > 0 && (
                 <div className="mb-4">
-                  <div className="text-xs text-gray-500 mb-2 font-medium uppercase">
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Groups
                   </div>
                   {moduleGroups.map((group) => {
-                    const unreadCount = unreadCounts.get(group.id) || 0; // Get unread for GROUP
+                    const unreadCount = unreadCounts.get(group.id) || 0;
 
                     return (
                       <button
                         key={group.id}
                         onClick={() => handleGroupClick(group)}
-                        className="w-full flex items-center gap-2 sm:gap-3 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group mb-1 ${
+                          selectedRoom?.id === group.id
+                            ? "bg-yellow-50 border border-yellow-200"
+                            : "hover:bg-slate-50"
+                        }`}
                       >
-                        <div className="text-xl sm:text-2xl flex-shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
                           👥
                         </div>
                         <div className="flex-1 text-left min-w-0">
-                          <div className="font-medium text-sm text-gray-900 group-hover:text-blue-600 truncate">
+                          <div className="font-semibold text-sm text-slate-900 truncate">
                             {group.name}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Group Chat
-                          </div>
+                          <div className="text-xs text-slate-500">Group Chat</div>
                         </div>
-
-                        {/* ADD THIS: Show badge for group */}
                         {unreadCount > 0 && (
-                          <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
+                          <div className="bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
                             {unreadCount}
                           </div>
                         )}
@@ -1349,83 +1366,46 @@ export default function LearningPlatformChat({
                   })}
                 </div>
               )}
-              <div className="mb-4">
-                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">
-                  Students ({filteredModuleUsers.students.length})
-                </div>
-                {filteredModuleUsers.students.map((user) => {
-                  // Get the room ID for this user's chat
-                  const roomId = getRoomIdForUser(user.id);
-                  const unreadCount = roomId
-                    ? unreadCounts.get(roomId) || 0
-                    : 0;
 
-                  return (
-                    <button
-                      key={user.id}
-                      onClick={() => handleUserClick(user)}
-                      className="w-full flex items-center gap-2 sm:gap-3 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-                    >
-                      <div className="relative flex-shrink-0">
-                        <div className="text-xl sm:text-2xl">{user.avatar}</div>
-                        {user.isOnline && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                        )}
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="font-medium text-sm text-gray-900 group-hover:text-blue-600 truncate">
-                          {user.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {user.subscription}
-                        </div>
-                      </div>
-
-                      {unreadCount > 0 && (
-                        <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
-                          {unreadCount}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {filteredModuleUsers.teachers.length > 0 && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-2 font-medium uppercase">
-                    Teachers ({filteredModuleUsers.teachers.length})
+              {/* Students */}
+              {filteredUsers.students.length > 0 && (
+                <div className="mb-4">
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Users size={14} />
+                    Students ({filteredUsers.students.length})
                   </div>
-                  {filteredModuleUsers.teachers.map((user) => {
-                    // Get the room ID for this user's chat
+                  {filteredUsers.students.map((user) => {
                     const roomId = getRoomIdForUser(user.id);
-                    const unreadCount = roomId
-                      ? unreadCounts.get(roomId) || 0
-                      : 0;
+                    const unreadCount = roomId ? unreadCounts.get(roomId) || 0 : 0;
 
                     return (
                       <button
                         key={user.id}
                         onClick={() => handleUserClick(user)}
-                        className="w-full flex items-center gap-2 sm:gap-3 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group mb-1 ${
+                          selectedRoom?.participants.includes(user.id)
+                            ? "bg-yellow-50 border border-yellow-200"
+                            : "hover:bg-slate-50"
+                        }`}
                       >
                         <div className="relative flex-shrink-0">
-                          <div className="text-xl sm:text-2xl">
+                          <div className="w-12 h-12 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center text-2xl">
                             {user.avatar}
                           </div>
                           {user.isOnline && (
-                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
                           )}
                         </div>
                         <div className="flex-1 text-left min-w-0">
-                          <div className="font-medium text-sm text-gray-900 group-hover:text-blue-600 truncate">
+                          <div className="font-semibold text-sm text-slate-900 truncate">
                             {user.name}
                           </div>
-                          <div className="text-xs text-gray-500">Teacher</div>
+                          <div className="text-xs text-slate-500 capitalize">
+                            {user.subscription}
+                          </div>
                         </div>
-
                         {unreadCount > 0 && (
-                          <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
+                          <div className="bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
                             {unreadCount}
                           </div>
                         )}
@@ -1434,14 +1414,71 @@ export default function LearningPlatformChat({
                   })}
                 </div>
               )}
-            </>
+
+              {/* Teachers */}
+              {filteredUsers.teachers.length > 0 && (
+                <div>
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Users size={14} />
+                    Teachers ({filteredUsers.teachers.length})
+                  </div>
+                  {filteredUsers.teachers.map((user) => {
+                    const roomId = getRoomIdForUser(user.id);
+                    const unreadCount = roomId ? unreadCounts.get(roomId) || 0 : 0;
+
+                    return (
+                      <button
+                        key={user.id}
+                        onClick={() => handleUserClick(user)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group mb-1 ${
+                          selectedRoom?.participants.includes(user.id)
+                            ? "bg-yellow-50 border border-yellow-200"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center text-2xl">
+                            {user.avatar}
+                          </div>
+                          {user.isOnline && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                          )}
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="font-semibold text-sm text-slate-900 truncate">
+                            {user.name}
+                          </div>
+                          <div className="text-xs text-slate-500">Teacher</div>
+                        </div>
+                        {unreadCount > 0 && (
+                          <div className="bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
+                            {unreadCount}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* No results */}
+              {filteredUsers.students.length === 0 && 
+               filteredUsers.teachers.length === 0 && 
+               moduleGroups.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  <Users size={48} className="mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">No conversations found</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
-        {/* Powered by Rasta Kadema Footer */}
-        <div className="p-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-          <p className="text-xs text-center text-gray-500">
+
+        {/* Footer */}
+        <div className="p-3 border-t border-slate-200 bg-slate-50 flex-shrink-0">
+          <p className="text-xs text-center text-slate-500">
             Powered by{" "}
-            <span className="font-semibold text-gray-700">Rasta Kadema</span>
+            <span className="font-semibold text-yellow-500">Rasta Kadema</span>
           </p>
         </div>
       </div>
@@ -1450,29 +1487,32 @@ export default function LearningPlatformChat({
       <div
         className={`${
           showMobileChat ? "flex" : "hidden md:flex"
-        } flex-1 flex-col min-w-0 overflow-hidden`}
+        } flex-1 flex-col min-w-0 overflow-hidden bg-gradient-to-br from-slate-100 to-white`}
       >
         {selectedRoom ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between flex-shrink-0 shadow-sm">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <button
                   onClick={handleBackToList}
-                  className="md:hidden p-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  className="md:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <div className="text-2xl sm:text-3xl flex-shrink-0">
+                <div className="w-11 h-11 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
                   {getRoomIcon(selectedRoom)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                  <h2 className="font-bold text-slate-900 text-base truncate">
                     {getRoomDisplayName(selectedRoom)}
                   </h2>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-slate-500">
                     {selectedRoom.type === "group" ? (
-                      <span>Group Chat</span>
+                      <span className="flex items-center gap-1">
+                        <Users size={12} />
+                        Group Chat
+                      </span>
                     ) : (
                       (() => {
                         const otherUser = getUserById(
@@ -1481,12 +1521,12 @@ export default function LearningPlatformChat({
                           )!,
                         );
                         return otherUser?.isOnline ? (
-                          <span className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            Online
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            Active now
                           </span>
                         ) : (
-                          <span>Offline</span>
+                          <span className="text-slate-400">Offline</span>
                         );
                       })()
                     )}
@@ -1494,52 +1534,66 @@ export default function LearningPlatformChat({
                 </div>
               </div>
 
-              {/* Three-Dot Menu Button */}
-              <div className="relative flex-shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowChatMenu(!showChatMenu);
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  title="More options"
-                >
-                  <MoreVertical size={20} className="text-gray-600" />
-                </button>
-
-                {/* Dropdown Menu */}
-                {showChatMenu && (
-                  <div
-                    className="absolute right-0 top-12 bg-white shadow-lg rounded-lg py-2 z-50 border border-gray-200 min-w-[180px]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => {
-                        setShowClearConfirm(true);
-                        setShowChatMenu(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-3 text-red-600"
-                    >
-                      <Trash size={16} />
-                      Clear Chat
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {selectedRoom.type === "one_to_one" && (
+                  <>
+                    <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600" title="Voice call">
+                      <Phone size={20} />
                     </button>
-                  </div>
+                    <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600" title="Video call">
+                      <VideoIcon size={20} />
+                    </button>
+                  </>
                 )}
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowChatMenu(!showChatMenu);
+                    }}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+                    title="More options"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+
+                  {showChatMenu && (
+                    <div
+                      className="absolute right-0 top-12 bg-white shadow-xl rounded-xl py-2 z-50 border border-slate-200 min-w-[180px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => {
+                          setShowClearConfirm(true);
+                          setShowChatMenu(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 text-red-600 font-medium transition-colors"
+                      >
+                        <Trash size={16} />
+                        Clear Chat
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Messages Area */}
             <div
-              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50"
+              className="flex-1 overflow-y-auto p-6 space-y-4"
               style={{ paddingBottom: "80px" }}
             >
               {getRoomMessages(selectedRoom.id).length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                  <MessageCircle size={40} className="sm:w-12 sm:h-12 mb-4" />
-                  <p className="text-base sm:text-lg font-medium">
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl flex items-center justify-center mb-4">
+                    <MessageCircle size={40} className="text-yellow-600" />
+                  </div>
+                  <p className="text-lg font-semibold text-slate-600 mb-1">
                     No messages yet
                   </p>
-                  <p className="text-xs sm:text-sm">Start the conversation!</p>
+                  <p className="text-sm text-slate-400">
+                    Start the conversation with a message
+                  </p>
                 </div>
               ) : (
                 <>
@@ -1553,13 +1607,11 @@ export default function LearningPlatformChat({
                     const showAvatar =
                       !prevMessage || prevMessage.senderId !== message.senderId;
 
-                    // Check if message is deleted
                     const isDeletedForMe = message.deletedFor?.includes(
                       currentUser.id,
                     );
                     const isDeletedForEveryone = message.deletedForEveryone;
 
-                    // Skip rendering if deleted for current user
                     if (isDeletedForMe) return null;
 
                     const getStatusIcon = (message: Message) => {
@@ -1572,63 +1624,37 @@ export default function LearningPlatformChat({
                         message.deliveredTo && message.deliveredTo.length > 0;
 
                       if (isRead) {
-                        return (
-                          <svg
-                            className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                          >
-                            <path d="M0 8l2-2 3 3 7-7 2 2-9 9z" />
-                            <path d="M5 8l2-2 3 3 7-7 2 2-9 9z" opacity="0.6" />
-                          </svg>
-                        );
+                        return <CheckCheck className="w-4 h-4 text-yellow-500" />;
                       } else if (isDelivered) {
-                        return (
-                          <svg
-                            className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                          >
-                            <path d="M0 8l2-2 3 3 7-7 2 2-9 9z" />
-                            <path d="M5 8l2-2 3 3 7-7 2 2-9 9z" opacity="0.6" />
-                          </svg>
-                        );
+                        return <CheckCheck className="w-4 h-4 text-slate-400" />;
                       } else {
-                        return (
-                          <svg
-                            className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                          >
-                            <path d="M0 8l2-2 3 3 7-7 2 2-9 9z" />
-                          </svg>
-                        );
+                        return <Check className="w-4 h-4 text-slate-400" />;
                       }
                     };
 
                     return (
                       <div
                         key={message.clientMessageId || message.id}
-                        className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${
+                        className={`flex gap-3 ${
                           isCurrentUser ? "flex-row-reverse" : ""
                         }`}
                       >
                         <div className="flex-shrink-0">
                           {showAvatar ? (
-                            <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-lg sm:text-xl">
+                            <div className="w-10 h-10 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center text-xl shadow-sm">
                               {sender?.avatar}
                             </div>
                           ) : (
-                            <div className="w-7 sm:w-8"></div>
+                            <div className="w-10"></div>
                           )}
                         </div>
                         <div
                           className={`flex flex-col ${
                             isCurrentUser ? "items-end" : "items-start"
-                          } max-w-[75%] sm:max-w-md lg:max-w-lg min-w-0`}
+                          } max-w-[75%] lg:max-w-lg min-w-0`}
                         >
                           {showAvatar && !isCurrentUser && (
-                            <div className="text-xs font-medium text-gray-700 mb-1 px-1">
+                            <div className="text-xs font-semibold text-slate-600 mb-1 px-1">
                               {sender?.name}
                             </div>
                           )}
@@ -1636,28 +1662,27 @@ export default function LearningPlatformChat({
                             onContextMenu={(e) =>
                               handleMessageContextMenu(e, message)
                             }
-                            className={`px-3 sm:px-4 py-2 rounded-2xl ${
+                            className={`px-4 py-3 rounded-2xl shadow-sm ${
                               isCurrentUser
-                                ? "bg-blue-600 text-white"
-                                : "bg-white text-gray-900 border border-gray-200"
+                                ? "bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900"
+                                : "bg-white text-slate-900 border border-slate-200"
                             } ${
                               message.status === "sending" ? "opacity-60" : ""
-                            } break-words cursor-pointer hover:shadow-md transition-shadow`}
+                            } break-words cursor-pointer hover:shadow-md transition-all`}
                           >
-                            {/* Tagged/Replied Message */}
                             {message.taggedMessage && !isDeletedForEveryone && (
                               <div
-                                className={`mb-2 pb-2 border-l-4 pl-2 text-xs ${
+                                className={`mb-2 pb-2 border-l-4 pl-3 text-xs rounded ${
                                   isCurrentUser
-                                    ? "border-white/40"
-                                    : "border-blue-500"
+                                    ? "border-slate-700 bg-slate-800 bg-opacity-20"
+                                    : "border-yellow-500 bg-yellow-50"
                                 }`}
                               >
                                 <div
                                   className={`font-semibold ${
                                     isCurrentUser
-                                      ? "text-white/90"
-                                      : "text-blue-600"
+                                      ? "text-slate-900"
+                                      : "text-yellow-700"
                                   }`}
                                 >
                                   {message.taggedMessage.senderName}
@@ -1665,8 +1690,8 @@ export default function LearningPlatformChat({
                                 <div
                                   className={`${
                                     isCurrentUser
-                                      ? "text-white/70"
-                                      : "text-gray-600"
+                                      ? "text-slate-700"
+                                      : "text-slate-600"
                                   } truncate`}
                                 >
                                   {message.taggedMessage.content}
@@ -1674,11 +1699,10 @@ export default function LearningPlatformChat({
                               </div>
                             )}
 
-                            {/* Message Content */}
-                            {/* Message Content */}
                             {isDeletedForEveryone ? (
-                              <span className="text-sm sm:text-base italic opacity-60">
-                                🚫 This message was deleted
+                              <span className="text-sm italic opacity-60 flex items-center gap-2">
+                                <Trash2 size={14} />
+                                This message was deleted
                               </span>
                             ) : message.type === "attachment" ? (
                               <AttachmentMessage
@@ -1688,12 +1712,12 @@ export default function LearningPlatformChat({
                             ) : message.type === "audio" ? (
                               <VoiceMessage message={message} />
                             ) : (
-                              <span className="text-sm sm:text-base">
+                              <span className="text-sm leading-relaxed">
                                 {message.content}
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 px-1">
+                          <div className="text-xs text-slate-400 mt-1 flex items-center gap-2 px-1">
                             {new Date(message.timestamp).toLocaleTimeString(
                               [],
                               {
@@ -1713,22 +1737,22 @@ export default function LearningPlatformChat({
 
               {/* Typing Indicator */}
               {getTypingIndicator(selectedRoom.id) && (
-                <div className="flex gap-2 sm:gap-3 items-center mb-4">
-                  <div className="w-7 sm:w-8"></div>
-                  <div className="bg-white px-3 sm:px-4 py-2 rounded-2xl border border-gray-200">
+                <div className="flex gap-3 items-center">
+                  <div className="w-10"></div>
+                  <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
                       <div
-                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
                         style={{ animationDelay: "0.1s" }}
                       ></div>
                       <div
-                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
                         style={{ animationDelay: "0.2s" }}
                       ></div>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500 italic hidden sm:inline">
+                  <span className="text-xs text-slate-500 italic hidden sm:inline">
                     {getTypingIndicator(selectedRoom.id)}
                   </span>
                 </div>
@@ -1738,39 +1762,36 @@ export default function LearningPlatformChat({
             {/* Context Menu */}
             {contextMenu && (
               <div
-                className="fixed bg-white shadow-lg rounded-lg py-2 z-50 border border-gray-200 min-w-[160px]"
+                className="fixed bg-white shadow-2xl rounded-xl py-2 z-50 border border-slate-200 min-w-[160px]"
                 style={{
                   left: `${contextMenu.x}px`,
                   top: `${contextMenu.y}px`,
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Reply option */}
                 {!contextMenu.message.deletedForEveryone && (
                   <button
                     onClick={() => handleReply(contextMenu.message)}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 transition-colors"
                   >
-                    <Reply size={16} />
-                    Reply
+                    <Reply size={16} className="text-slate-600" />
+                    <span className="font-medium text-slate-700">Reply</span>
                   </button>
                 )}
 
-                {/* Delete for Me */}
                 <button
                   onClick={() => handleDelete(contextMenu.message, false)}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-red-50 flex items-center gap-3 text-red-600 transition-colors"
                 >
                   <Trash2 size={16} />
-                  Delete for Me
+                  <span className="font-medium">Delete for Me</span>
                 </button>
 
-                {/* Delete for Everyone - only if sender */}
                 {contextMenu.message.senderId === currentUser.id &&
                   !contextMenu.message.deletedForEveryone && (
                     <button
                       onClick={() => handleDelete(contextMenu.message, true)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600 font-semibold"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-red-50 flex items-center gap-3 text-red-600 font-semibold transition-colors"
                     >
                       <Trash2 size={16} />
                       Delete for Everyone
@@ -1778,22 +1799,23 @@ export default function LearningPlatformChat({
                   )}
               </div>
             )}
-            {/* Clear Chat Confirmation Dialog */}
+
+            {/* Clear Chat Confirmation */}
             {showClearConfirm && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
                 <div
-                  className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+                  className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Trash className="text-red-600" size={20} />
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Trash className="text-red-600" size={24} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">
                         Clear Chat History?
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-600 leading-relaxed">
                         {selectedRoom?.type === "group"
                           ? `This will delete all messages in "${getRoomDisplayName(selectedRoom)}" from your device. This action cannot be undone.`
                           : `This will delete all messages with ${getRoomDisplayName(selectedRoom)} from your device. This action cannot be undone.`}
@@ -1804,13 +1826,13 @@ export default function LearningPlatformChat({
                   <div className="flex gap-3 justify-end">
                     <button
                       onClick={() => setShowClearConfirm(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleClearChat}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm"
                     >
                       Clear Chat
                     </button>
@@ -1818,6 +1840,7 @@ export default function LearningPlatformChat({
                 </div>
               </div>
             )}
+
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -1826,29 +1849,30 @@ export default function LearningPlatformChat({
               onChange={handleFileSelect}
               className="hidden"
             />
+
             {/* Attachment Preview */}
             {attachmentPreview && (
-              <div className="bg-gray-50 border-t border-gray-200 px-4 py-3">
-                <div className="flex items-start gap-3 bg-white rounded-lg p-3 border border-gray-200">
+              <div className="bg-white border-t border-slate-200 px-4 py-3 shadow-lg">
+                <div className="flex items-start gap-3 bg-slate-50 rounded-xl p-3 border border-slate-200">
                   <div className="flex-shrink-0">
                     {attachmentPreview.preview ? (
                       <img
                         src={attachmentPreview.preview}
                         alt="Preview"
-                        className="w-16 h-16 object-cover rounded"
+                        className="w-16 h-16 object-cover rounded-lg"
                       />
                     ) : (
-                      <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center text-blue-600">
+                      <div className="w-16 h-16 bg-yellow-50 rounded-lg flex items-center justify-center text-yellow-600">
                         {getFileIcon(attachmentPreview.file.type)}
                       </div>
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-semibold text-slate-900 truncate">
                       {attachmentPreview.file.name}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-slate-500">
                       {formatFileSize(attachmentPreview.file.size)}
                     </p>
                     {attachmentPreview.error && (
@@ -1857,7 +1881,9 @@ export default function LearningPlatformChat({
                       </p>
                     )}
                     {attachmentPreview.uploading && (
-                      <p className="text-xs text-blue-600 mt-1">Uploading...</p>
+                      <p className="text-xs text-yellow-600 mt-1 font-medium">
+                        Uploading...
+                      </p>
                     )}
                   </div>
 
@@ -1869,7 +1895,7 @@ export default function LearningPlatformChat({
                         }
                         setAttachmentPreview(null);
                       }}
-                      className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+                      className="flex-shrink-0 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-200 rounded-lg transition-colors"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -1881,7 +1907,7 @@ export default function LearningPlatformChat({
                   placeholder="Add a caption (optional)"
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="mt-3 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                   disabled={attachmentPreview.uploading}
                   onKeyPress={(e) =>
                     e.key === "Enter" && !e.shiftKey && handleSendMessage()
@@ -1892,31 +1918,30 @@ export default function LearningPlatformChat({
 
             {/* Reply Bar */}
             {replyingTo && (
-              <div className="bg-gray-100 border-t border-gray-200 px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Reply size={16} className="text-blue-600 flex-shrink-0" />
+              <div className="bg-yellow-50 border-t border-yellow-200 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <Reply size={18} className="text-yellow-600 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-blue-600">
-                      {replyingTo.senderName}
+                    <div className="text-xs font-bold text-yellow-700">
+                      Replying to {replyingTo.senderName}
                     </div>
-                    <div className="text-xs text-gray-600 truncate">
+                    <div className="text-xs text-slate-600 truncate">
                       {replyingTo.content}
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setReplyingTo(null)}
-                  className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                  className="p-1.5 hover:bg-yellow-100 rounded-lg transition-colors flex-shrink-0"
                 >
-                  <X size={18} />
+                  <X size={18} className="text-slate-600" />
                 </button>
               </div>
             )}
 
             {/* Message Input */}
-            {/* Message Input */}
-           <div className="bg-white border-t border-gray-200 p-2 sm:p-3 md:p-4 flex-shrink-0">
-              <div className="flex gap-2 sm:gap-3">
+            <div className="bg-white border-t border-slate-200 p-4 flex-shrink-0 shadow-lg">
+              <div className="flex gap-3 items-center">
                 <input
                   type="text"
                   value={messageInput}
@@ -1930,28 +1955,26 @@ export default function LearningPlatformChat({
                       : "Type a message..."
                   }
                   disabled={attachmentPreview?.uploading}
-                  className="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-0 disabled:bg-gray-100"
+                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-w-0 disabled:bg-slate-100"
                 />
 
-                {/* Paperclip button - only show in student-teacher chats */}
                 {isStudentTeacherRoom() && !attachmentPreview && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center flex-shrink-0"
-                    title="Attach file (student-teacher only)"
+                    className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center flex-shrink-0"
+                    title="Attach file"
                   >
-                    <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    <Paperclip size={20} />
                   </button>
                 )}
 
-                {/* Voice button - hide when attachment is selected */}
                 {!attachmentPreview && (
                   <button
                     onClick={() => setShowVoiceRecorder(true)}
-                    className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center flex-shrink-0"
-                    title="Send voice message"
+                    className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center flex-shrink-0"
+                    title="Voice message"
                   >
-                    <Mic size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    <Mic size={20} />
                   </button>
                 )}
 
@@ -1962,12 +1985,10 @@ export default function LearningPlatformChat({
                       ? attachmentPreview.uploading
                       : !messageInput.trim()
                   }
-                  className="px-3 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 font-medium flex-shrink-0"
+                  className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 rounded-xl hover:from-yellow-500 hover:to-yellow-600 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold flex-shrink-0 shadow-sm disabled:shadow-none"
                 >
-                  <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden sm:inline text-sm sm:text-base">
-                    Send
-                  </span>
+                  <Send size={18} />
+                  <span className="hidden sm:inline">Send</span>
                 </button>
               </div>
             </div>
@@ -1981,13 +2002,15 @@ export default function LearningPlatformChat({
             )}
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-4">
-            <MessageCircle size={48} className="sm:w-16 sm:h-16 mb-4" />
-            <p className="text-lg sm:text-xl font-medium text-center">
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-4">
+            <div className="w-24 h-24 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-3xl flex items-center justify-center mb-6">
+              <MessageCircle size={48} className="text-yellow-600" />
+            </div>
+            <p className="text-xl font-bold text-slate-600 mb-2 text-center">
               Select a chat to start messaging
             </p>
-            <p className="text-xs sm:text-sm mt-2 text-center">
-              Click on a contact or group to begin
+            <p className="text-sm text-center text-slate-400">
+              Choose a contact or group from the sidebar
             </p>
           </div>
         )}
