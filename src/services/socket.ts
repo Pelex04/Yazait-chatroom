@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000/";
+const SOCKET_URL = "https://chatroom-0u60.onrender.com/";
 
 class SocketService {
   private socket: Socket | null = null;
