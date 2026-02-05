@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Chatroom/src/App.tsx - DEBUG VERSION
-// Add console.logs to see what's happening
+// Chatroom/src/App.tsx - WITH MAINTENANCE MODE
 
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/Login";
 import SSOHandler from "./components/SSOHandler";
 import LearningPlatformChat from "./components/chat";
+import MaintenancePage from "./components/MaintenancePage.tsx";
 import socketService from "./services/socket";
 import { authAPI } from "./services/api";
 
@@ -15,9 +15,30 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
   useEffect(() => {
-    const initializeUser = async () => {
+    const initializeApp = async () => {
+      // First, check if backend is in maintenance mode
+      try {
+        const healthResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/health`);
+        const healthData = await healthResponse.json();
+        
+        if (healthResponse.status === 503 || healthData.maintenanceMode) {
+          console.log('[MAINTENANCE] Backend is in maintenance mode');
+          setIsMaintenanceMode(true);
+          setIsLoading(false);
+          return; // Stop initialization, show maintenance page
+        }
+      } catch (error) {
+        // If we can't reach the backend at all, assume maintenance
+        console.error('[MAINTENANCE] Cannot reach backend, assuming maintenance mode:', error);
+        setIsMaintenanceMode(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // If not in maintenance mode, proceed with normal authentication
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
 
@@ -45,7 +66,7 @@ function App() {
       setIsLoading(false);
     };
 
-    initializeUser();
+    initializeApp();
   }, []);
 
   const handleLoginSuccess = (token: string, user: any) => {
@@ -87,10 +108,24 @@ function App() {
     }
   };
 
+  // Loading state
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 mx-auto border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-gray-600">Loading ChezaX...</p>
+        </div>
+      </div>
+    );
   }
 
+  // Maintenance mode - show to everyone
+  if (isMaintenanceMode) {
+    return <MaintenancePage />;
+  }
+
+  // Normal app flow
   return (
     <BrowserRouter>
       <Routes>
