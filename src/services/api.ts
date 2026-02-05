@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://chatroom-0u60.onrender.com/api';
+const API_URL = 'https://chatroom-h46w.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
