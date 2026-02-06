@@ -52,7 +52,7 @@ const MaintenancePage = () => {
             </div>
             <div className="space-y-1">
               <div className="text-3xl font-bold text-gray-900">
-                February 9, 2025
+                February 9, 2026
               </div>
               <div className="text-sm text-gray-600">
                 We apologize for any inconvenience
