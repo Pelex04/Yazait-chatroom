@@ -39,6 +39,8 @@ import {
 import socketService from "../services/socket";
 import { chatAPI, moduleAPI } from "../services/api";
 import VoiceRecorder from "./VoiceRecorder";
+import Avatar from "./Avatar";
+import ModuleIcon from './ModuleIcon';
 
 type UserRole = "student" | "teacher";
 type SubscriptionTier = "basic" | "premium";
@@ -563,7 +565,7 @@ export default function LearningPlatformChat({
 
       const token = localStorage.getItem("token");
       const response = await fetch(
-        "https://chatroom-h46w.onrender.com/api/voice/upload-voice",
+        "http://localhost:5000/api/voice/upload-voice",
         {
           method: "POST",
           headers: {
@@ -734,7 +736,7 @@ export default function LearningPlatformChat({
 
       const token = localStorage.getItem("token");
       const uploadResponse = await fetch(
-        "https://chatroom-h46w.onrender.com/api/attachment/upload-attachment",
+        "http://localhost:5000/api/attachment/upload-attachment",
         {
           method: "POST",
           headers: {
@@ -1072,7 +1074,11 @@ export default function LearningPlatformChat({
               <path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" />
             </svg>
           ) : (
-            <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-5 h-5 ml-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path d="M6 4l10 6-10 6V4z" />
             </svg>
           )}
@@ -1096,7 +1102,7 @@ export default function LearningPlatformChat({
 
         <audio
           ref={audioRef}
-          src={`https://chatroom-h46w.onrender.com${message.audioUrl}`}
+          src={`http://localhost:5000${message.audioUrl}`}
           onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
           onEnded={() => {
             setIsPlaying(false);
@@ -1118,7 +1124,7 @@ export default function LearningPlatformChat({
 
     const isImage = attachment.mimetype.startsWith("image/");
     const isVideo = attachment.mimetype.startsWith("video/");
-    const fileUrl = `https://chatroom-h46w.onrender.com${attachment.url}`;
+    const fileUrl = `http://localhost:5000${attachment.url}`;
 
     const getFileIconSmall = () => {
       if (isImage) return <ImageIcon className="w-5 h-5" />;
@@ -1308,7 +1314,10 @@ export default function LearningPlatformChat({
         {/* Search */}
         <div className="p-4 border-b border-slate-200">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+            <Search
+              className="absolute left-3 top-2.5 text-slate-400"
+              size={18}
+            />
             <input
               type="text"
               placeholder="Search conversations..."
@@ -1347,14 +1356,18 @@ export default function LearningPlatformChat({
                             : "hover:bg-slate-50"
                         }`}
                       >
-                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
-                          👥
-                        </div>
+                        <ModuleIcon
+                          moduleName={group.name}
+                          moduleCode={selectedModule?.code}
+                          size="lg"
+                        />
                         <div className="flex-1 text-left min-w-0">
                           <div className="font-semibold text-sm text-slate-900 truncate">
                             {group.name}
                           </div>
-                          <div className="text-xs text-slate-500">Group Chat</div>
+                          <div className="text-xs text-slate-500">
+                            Group Chat
+                          </div>
                         </div>
                         {unreadCount > 0 && (
                           <div className="bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
@@ -1376,7 +1389,9 @@ export default function LearningPlatformChat({
                   </div>
                   {filteredUsers.students.map((user) => {
                     const roomId = getRoomIdForUser(user.id);
-                    const unreadCount = roomId ? unreadCounts.get(roomId) || 0 : 0;
+                    const unreadCount = roomId
+                      ? unreadCounts.get(roomId) || 0
+                      : 0;
 
                     return (
                       <button
@@ -1388,14 +1403,13 @@ export default function LearningPlatformChat({
                             : "hover:bg-slate-50"
                         }`}
                       >
-                        <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center text-2xl">
-                            {user.avatar}
-                          </div>
-                          {user.isOnline && (
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
-                          )}
-                        </div>
+                        <Avatar
+                          src={user.avatar}
+                          alt={user.name}
+                          size="lg"
+                          showOnline={true}
+                          isOnline={user.isOnline}
+                        />
                         <div className="flex-1 text-left min-w-0">
                           <div className="font-semibold text-sm text-slate-900 truncate">
                             {user.name}
@@ -1424,7 +1438,9 @@ export default function LearningPlatformChat({
                   </div>
                   {filteredUsers.teachers.map((user) => {
                     const roomId = getRoomIdForUser(user.id);
-                    const unreadCount = roomId ? unreadCounts.get(roomId) || 0 : 0;
+                    const unreadCount = roomId
+                      ? unreadCounts.get(roomId) || 0
+                      : 0;
 
                     return (
                       <button
@@ -1436,14 +1452,14 @@ export default function LearningPlatformChat({
                             : "hover:bg-slate-50"
                         }`}
                       >
-                        <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center text-2xl">
-                            {user.avatar}
-                          </div>
-                          {user.isOnline && (
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
-                          )}
-                        </div>
+                        <Avatar
+                          src={user.avatar}
+                          alt={user.name}
+                          size="lg"
+                          showOnline={true}
+                          isOnline={user.isOnline}
+                          className="bg-gradient-to-br from-blue-100 to-blue-200"
+                        />
                         <div className="flex-1 text-left min-w-0">
                           <div className="font-semibold text-sm text-slate-900 truncate">
                             {user.name}
@@ -1462,14 +1478,14 @@ export default function LearningPlatformChat({
               )}
 
               {/* No results */}
-              {filteredUsers.students.length === 0 && 
-               filteredUsers.teachers.length === 0 && 
-               moduleGroups.length === 0 && (
-                <div className="text-center py-8 text-slate-400">
-                  <Users size={48} className="mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No conversations found</p>
-                </div>
-              )}
+              {filteredUsers.students.length === 0 &&
+                filteredUsers.teachers.length === 0 &&
+                moduleGroups.length === 0 && (
+                  <div className="text-center py-8 text-slate-400">
+                    <Users size={48} className="mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No conversations found</p>
+                  </div>
+                )}
             </div>
           )}
         </div>
@@ -1500,9 +1516,12 @@ export default function LearningPlatformChat({
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <div className="w-11 h-11 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
-                  {getRoomIcon(selectedRoom)}
-                </div>
+                <Avatar
+                  src={getRoomIcon(selectedRoom)}
+                  alt={getRoomDisplayName(selectedRoom)}
+                  size="lg"
+                  className="bg-gradient-to-br from-yellow-400 to-yellow-500"
+                />
                 <div className="min-w-0 flex-1">
                   <h2 className="font-bold text-slate-900 text-base truncate">
                     {getRoomDisplayName(selectedRoom)}
@@ -1537,10 +1556,16 @@ export default function LearningPlatformChat({
               <div className="flex items-center gap-2 flex-shrink-0">
                 {selectedRoom.type === "one_to_one" && (
                   <>
-                    <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600" title="Voice call">
+                    <button
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+                      title="Voice call"
+                    >
                       <Phone size={20} />
                     </button>
-                    <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600" title="Video call">
+                    <button
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+                      title="Video call"
+                    >
                       <VideoIcon size={20} />
                     </button>
                   </>
@@ -1624,9 +1649,13 @@ export default function LearningPlatformChat({
                         message.deliveredTo && message.deliveredTo.length > 0;
 
                       if (isRead) {
-                        return <CheckCheck className="w-4 h-4 text-yellow-500" />;
+                        return (
+                          <CheckCheck className="w-4 h-4 text-yellow-500" />
+                        );
                       } else if (isDelivered) {
-                        return <CheckCheck className="w-4 h-4 text-slate-400" />;
+                        return (
+                          <CheckCheck className="w-4 h-4 text-slate-400" />
+                        );
                       } else {
                         return <Check className="w-4 h-4 text-slate-400" />;
                       }
@@ -1641,9 +1670,11 @@ export default function LearningPlatformChat({
                       >
                         <div className="flex-shrink-0">
                           {showAvatar ? (
-                            <div className="w-10 h-10 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center text-xl shadow-sm">
-                              {sender?.avatar}
-                            </div>
+                            <Avatar
+                              src={sender?.avatar || "👤"}
+                              alt={sender?.name || "Unknown"}
+                              size="md"
+                            />
                           ) : (
                             <div className="w-10"></div>
                           )}
