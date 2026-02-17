@@ -32,13 +32,11 @@ import {
   Search,
   Phone,
   VideoIcon,
-  //Info,
   CheckCheck,
   Check,
 } from "lucide-react";
 import socketService from "../services/socket";
 import { chatAPI, moduleAPI } from "../services/api";
-import VoiceRecorder from "./VoiceRecorder";
 import Avatar from "./Avatar";
 import ModuleIcon from './ModuleIcon';
 
@@ -148,7 +146,8 @@ export default function LearningPlatformChat({
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(
     new Map(),
   );
-  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [showChatMenu, setShowChatMenu] = useState(false);
@@ -166,6 +165,47 @@ export default function LearningPlatformChat({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Linkify function to detect and make URLs clickable
+  const linkify = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-blue-600 break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  // Auto-grow textarea
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [messageInput]);
 
   useEffect(() => {
     const fetchModules = async () => {
@@ -555,6 +595,73 @@ export default function LearningPlatformChat({
     attachmentPreview,
   ]);
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm;codecs=opus",
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      setRecordingTime(0);
+      setIsRecording(true);
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
+
+        stream.getTracks().forEach((t) => t.stop());
+
+        // Send voice message
+        await handleVoiceSend(blob, recordingTime);
+        setIsRecording(false);
+        setRecordingTime(0);
+      };
+
+      mediaRecorder.start();
+
+      timerRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 1);
+      }, 1000);
+    } catch (err) {
+      alert("Microphone permission required.");
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+      if (timerRef.current) clearInterval(timerRef.current);
+      
+      // Clear audio chunks without sending
+      audioChunksRef.current = [];
+      setIsRecording(false);
+      setRecordingTime(0);
+    }
+  };
+
   const handleVoiceSend = async (audioBlob: Blob, duration: number) => {
     if (!selectedRoom || !selectedModule) return;
 
@@ -622,15 +729,13 @@ export default function LearningPlatformChat({
         targetUserId,
         clientMessageId,
       });
-
-      setShowVoiceRecorder(false);
     } catch (error: any) {
       alert("Failed to send voice message");
     }
   };
 
   const handleTyping = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setMessageInput(e.target.value);
       if (!selectedRoom) return;
 
@@ -818,6 +923,9 @@ export default function LearningPlatformChat({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
+
+  const formatTime = (s: number) =>
+    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const handleUserClick = useCallback(
     async (clickedUser: User) => {
@@ -1236,7 +1344,7 @@ export default function LearningPlatformChat({
         {content && (
           <p
             className={`
-            mt-2 text-sm px-3 py-2 rounded-xl
+            mt-2 text-sm px-3 py-2 rounded-xl break-words
             ${
               isCurrentUser
                 ? "bg-white bg-opacity-10 text-white"
@@ -1266,9 +1374,14 @@ export default function LearningPlatformChat({
               <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
                 <MessageCircle size={18} className="text-slate-900" />
               </div>
-              <h1 className="text-lg font-bold tracking-tight">
-                CHEZA<span className="text-yellow-400">X</span>
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold tracking-tight">
+                  CHEZA<span className="text-yellow-400">X</span>
+                </h1>
+                <span className="text-xs px-2 py-0.5 bg-yellow-400 text-slate-900 rounded-full font-bold">
+                  BETA
+                </span>
+              </div>
             </div>
             <button
               onClick={onLogout}
@@ -1605,8 +1718,8 @@ export default function LearningPlatformChat({
 
             {/* Messages Area */}
             <div
-              className="flex-1 overflow-y-auto p-6 space-y-4"
-              style={{ paddingBottom: "80px" }}
+              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4"
+              style={{ paddingBottom: "20px" }}
             >
               {getRoomMessages(selectedRoom.id).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-400">
@@ -1682,7 +1795,7 @@ export default function LearningPlatformChat({
                         <div
                           className={`flex flex-col ${
                             isCurrentUser ? "items-end" : "items-start"
-                          } max-w-[75%] lg:max-w-lg min-w-0`}
+                          } max-w-[85%] sm:max-w-[75%] lg:max-w-lg min-w-0`}
                         >
                           {showAvatar && !isCurrentUser && (
                             <div className="text-xs font-semibold text-slate-600 mb-1 px-1">
@@ -1699,7 +1812,12 @@ export default function LearningPlatformChat({
                                 : "bg-white text-slate-900 border border-slate-200"
                             } ${
                               message.status === "sending" ? "opacity-60" : ""
-                            } break-words cursor-pointer hover:shadow-md transition-all`}
+                            } cursor-pointer hover:shadow-md transition-all`}
+                            style={{
+                              wordWrap: "break-word",
+                              overflowWrap: "break-word",
+                              wordBreak: "break-word",
+                            }}
                           >
                             {message.taggedMessage && !isDeletedForEveryone && (
                               <div
@@ -1743,8 +1861,12 @@ export default function LearningPlatformChat({
                             ) : message.type === "audio" ? (
                               <VoiceMessage message={message} />
                             ) : (
-                              <span className="text-sm leading-relaxed">
-                                {message.content}
+                              <span className="text-sm leading-relaxed" style={{
+                                wordWrap: "break-word",
+                                overflowWrap: "break-word",
+                                wordBreak: "break-word",
+                              }}>
+                                {linkify(message.content)}
                               </span>
                             )}
                           </div>
@@ -1933,16 +2055,21 @@ export default function LearningPlatformChat({
                   )}
                 </div>
 
-                <input
-                  type="text"
+                <textarea
+                  ref={textareaRef}
                   placeholder="Add a caption (optional)"
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  className="mt-3 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                  rows={1}
+                  className="mt-3 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent resize-none"
+                  style={{ maxHeight: "120px", minHeight: "42px" }}
                   disabled={attachmentPreview.uploading}
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && !e.shiftKey && handleSendMessage()
-                  }
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                 />
               </div>
             )}
@@ -1972,65 +2099,92 @@ export default function LearningPlatformChat({
 
             {/* Message Input */}
             <div className="bg-white border-t border-slate-200 p-4 flex-shrink-0 shadow-lg">
-              <div className="flex gap-3 items-center">
-                <input
-                  type="text"
-                  value={messageInput}
-                  onChange={handleTyping}
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && !e.shiftKey && handleSendMessage()
-                  }
-                  placeholder={
-                    attachmentPreview
-                      ? "Add a caption (optional)"
-                      : "Type a message..."
-                  }
-                  disabled={attachmentPreview?.uploading}
-                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-w-0 disabled:bg-slate-100"
-                />
+              {isRecording ? (
+                <div className="flex gap-3 items-center bg-red-50 rounded-xl p-4 border border-red-200">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-slate-700">
+                      Recording...
+                    </span>
+                    <span className="text-sm font-mono text-slate-600 ml-2">
+                      {formatTime(recordingTime)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={cancelRecording}
+                      className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 transition-colors flex items-center gap-2 font-medium text-sm"
+                    >
+                      <X size={16} />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={stopRecording}
+                      className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 rounded-xl hover:from-yellow-500 hover:to-yellow-600 transition-colors flex items-center gap-2 font-semibold text-sm shadow-sm"
+                    >
+                      <Send size={16} />
+                      Send
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-3 items-end">
+                  <textarea
+                    ref={textareaRef}
+                    value={messageInput}
+                    onChange={handleTyping}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    placeholder={
+                      attachmentPreview
+                        ? "Add a caption (optional)"
+                        : "Type a message..."
+                    }
+                    disabled={attachmentPreview?.uploading}
+                    rows={1}
+                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-w-0 disabled:bg-slate-100 resize-none"
+                    style={{ maxHeight: "120px", minHeight: "44px" }}
+                  />
 
-                {isStudentTeacherRoom() && !attachmentPreview && (
+                  {isStudentTeacherRoom() && !attachmentPreview && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center flex-shrink-0"
+                      title="Attach file"
+                    >
+                      <Paperclip size={20} />
+                    </button>
+                  )}
+
+                  {!attachmentPreview && (
+                    <button
+                      onClick={startRecording}
+                      className="px-3 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center flex-shrink-0"
+                      title="Voice message"
+                    >
+                      <Mic size={20} />
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center flex-shrink-0"
-                    title="Attach file"
+                    onClick={handleSendMessage}
+                    disabled={
+                      attachmentPreview
+                        ? attachmentPreview.uploading
+                        : !messageInput.trim()
+                    }
+                    className="px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 rounded-xl hover:from-yellow-500 hover:to-yellow-600 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold flex-shrink-0 shadow-sm disabled:shadow-none"
                   >
-                    <Paperclip size={20} />
+                    <Send size={18} />
                   </button>
-                )}
-
-                {!attachmentPreview && (
-                  <button
-                    onClick={() => setShowVoiceRecorder(true)}
-                    className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center flex-shrink-0"
-                    title="Voice message"
-                  >
-                    <Mic size={20} />
-                  </button>
-                )}
-
-                <button
-                  onClick={handleSendMessage}
-                  disabled={
-                    attachmentPreview
-                      ? attachmentPreview.uploading
-                      : !messageInput.trim()
-                  }
-                  className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 rounded-xl hover:from-yellow-500 hover:to-yellow-600 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold flex-shrink-0 shadow-sm disabled:shadow-none"
-                >
-                  <Send size={18} />
-                  <span className="hidden sm:inline">Send</span>
-                </button>
-              </div>
+                </div>
+              )}
             </div>
-
-            {/* Voice Recorder Modal */}
-            {showVoiceRecorder && (
-              <VoiceRecorder
-                onSend={handleVoiceSend}
-                onCancel={() => setShowVoiceRecorder(false)}
-              />
-            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-4">
