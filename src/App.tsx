@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Chatroom/src/App.tsx - WITH MAINTENANCE MODE
+// Chatroom/src/App.tsx - WITH MAINTENANCE MODE + AUTH FIX
 
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -28,41 +28,58 @@ function App() {
           console.log('[MAINTENANCE] Backend is in maintenance mode');
           setIsMaintenanceMode(true);
           setIsLoading(false);
-          return; // Stop initialization, show maintenance page
+          return;
         }
       } catch (error) {
-        // If we can't reach the backend at all, assume maintenance
-        console.error('[MAINTENANCE] Cannot reach backend, assuming maintenance mode:', error);
-        setIsMaintenanceMode(true);
+        // ============================================
+        // CRITICAL FIX: Can't reach backend ≠ maintenance mode
+        // Just show login page - don't assume maintenance
+        // ============================================
+        console.error('[App] Cannot reach backend:', error);
         setIsLoading(false);
         return;
       }
 
-      // If not in maintenance mode, proceed with normal authentication
+      // ============================================
+      // CRITICAL FIX: Check token FIRST
+      // No token = go straight to login, no API calls at all
+      // ============================================
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
 
-      if (token) {
-        try {
-          if (storedUser) {
-            // SSO login - user already in localStorage
-            const userData = JSON.parse(storedUser);
-            setCurrentUser(userData);
-            setIsAuthenticated(true);
-            socketService.connect(token);
-          } else {
-            // Regular login - fetch from API
-            const userData = await authAPI.getCurrentUser();
-            setCurrentUser(userData.user);
-            setIsAuthenticated(true);
-            socketService.connect(token);
-          }
-        } catch (error) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          setIsAuthenticated(false);
-        }
+      if (!token) {
+        console.log("[App] No token found - showing login page");
+        setIsLoading(false);
+        return;
       }
+
+      // Token exists - try to restore session
+      try {
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          setCurrentUser(userData);
+          setIsAuthenticated(true);
+          socketService.connect(token);
+          console.log("[App] Session restored from storage");
+        } else {
+          // Token exists but no stored user - verify with server
+          const userData = await authAPI.getCurrentUser();
+          setCurrentUser(userData.user);
+          setIsAuthenticated(true);
+          socketService.connect(token);
+          console.log("[App] Session restored from server");
+        }
+      } catch (error: any) {
+        // Token is invalid or expired - clear everything silently
+        console.log("[App] Token invalid/expired - clearing session");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("platform_url");
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        // NO alert, NO error - just show login page
+      }
+
       setIsLoading(false);
     };
 
@@ -80,19 +97,11 @@ function App() {
   const handleLogout = () => {
     console.log("🔴 LOGOUT CLICKED");
     
-    // Check platform_url BEFORE clearing localStorage
     const platformUrl = localStorage.getItem("platform_url");
     console.log("🔍 Platform URL:", platformUrl);
-    console.log("📦 All localStorage:", {
-      token: localStorage.getItem("token"),
-      user: localStorage.getItem("user"),
-      platform_url: platformUrl
-    });
     
-    // Disconnect socket
     socketService.disconnect();
     
-    // Clear auth state
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setIsAuthenticated(false);
@@ -104,7 +113,6 @@ function App() {
       window.location.href = platformUrl;
     } else {
       console.log("❌ Direct Login User - Showing login page");
-      // React Router will automatically show Login component
     }
   };
 
@@ -129,7 +137,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* SSO Landing Route */}
         <Route 
           path="/sso" 
           element={
@@ -141,7 +148,6 @@ function App() {
           } 
         />
 
-        {/* Main Chat Route */}
         <Route 
           path="/" 
           element={
@@ -153,7 +159,6 @@ function App() {
           } 
         />
 
-        {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
