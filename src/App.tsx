@@ -10,6 +10,7 @@ import LearningPlatformChat from "./components/chat";
 import MaintenancePage from "./components/MaintenancePage.tsx";
 import socketService from "./services/socket";
 import { authAPI } from "./services/api";
+import AdminPanel from "./components/AdminPanel.tsx";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,7 +22,7 @@ function App() {
     const initializeApp = async () => {
       // First, check if backend is in maintenance mode
       try {
-        const healthResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://chatroom-h46w.onrender.com'}/health`);
+        const healthResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/health`);
         const healthData = await healthResponse.json();
         
         if (healthResponse.status === 503 || healthData.maintenanceMode) {
@@ -137,7 +138,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/admin/*" element={<AdminPanel />} />
         <Route 
+        
           path="/sso" 
           element={
             isAuthenticated ? (
