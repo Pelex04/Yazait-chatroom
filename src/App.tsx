@@ -32,7 +32,7 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const healthResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/health`);
+        const healthResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://chatroom-h46w.onrender.com'}/health`);
         const healthData = await healthResponse.json();
         if (healthResponse.status === 503 || healthData.maintenanceMode) {
           setIsMaintenanceMode(true);
