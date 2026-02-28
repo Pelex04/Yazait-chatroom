@@ -38,10 +38,17 @@ const COLORS = [
   { bg: "#F0FDF4", text: "#14532D", dot: "#22C55E" },
 ];
 
-function getColor(i: number) { return COLORS[i % COLORS.length]; }
+function getColor(i: number) {
+  return COLORS[i % COLORS.length];
+}
 
 function initials(name: string) {
-  return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 }
 
 function timeAgo(dateStr?: string) {
@@ -51,7 +58,10 @@ function timeAgo(dateStr?: string) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString("en", { month: "short", day: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function greeting() {
@@ -64,12 +74,28 @@ function UserAvatar({ user }: { user: User }) {
   const isUrl = user.avatar?.startsWith("http");
   if (isUrl && !err) {
     return (
-      <img src={user.avatar} alt={user.name} onError={() => setErr(true)}
-        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+      <img
+        src={user.avatar}
+        alt={user.name}
+        onError={() => setErr(true)}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: "50%",
+        }}
+      />
     );
   }
   return (
-    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", letterSpacing: -0.3 }}>
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: "#fff",
+        letterSpacing: -0.3,
+      }}
+    >
       {initials(user.name)}
     </span>
   );
@@ -77,38 +103,70 @@ function UserAvatar({ user }: { user: User }) {
 
 function SkeletonCard() {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 12,
-      padding: "12px 14px", background: "#fff",
-      border: "1px solid #F3F4F6", borderRadius: 12,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-    }}>
-      <div style={{
-        width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-        background: "linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
-        backgroundSize: "300px 100%",
-        animation: "shimmer 1.5s ease-in-out infinite",
-      }} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-        <div style={{
-          height: 11, width: "62%", borderRadius: 5,
-          background: "linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 14px",
+        background: "#fff",
+        border: "1px solid #F3F4F6",
+        borderRadius: 12,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      }}
+    >
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 10,
+          flexShrink: 0,
+          background:
+            "linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
           backgroundSize: "300px 100%",
           animation: "shimmer 1.5s ease-in-out infinite",
-        }} />
-        <div style={{
-          height: 9, width: "38%", borderRadius: 5,
-          background: "linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
-          backgroundSize: "300px 100%",
-          animation: "shimmer 1.5s ease-in-out infinite 0.15s",
-        }} />
+        }}
+      />
+      <div
+        style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}
+      >
+        <div
+          style={{
+            height: 11,
+            width: "62%",
+            borderRadius: 5,
+            background:
+              "linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
+            backgroundSize: "300px 100%",
+            animation: "shimmer 1.5s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            height: 9,
+            width: "38%",
+            borderRadius: 5,
+            background:
+              "linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
+            backgroundSize: "300px 100%",
+            animation: "shimmer 1.5s ease-in-out infinite 0.15s",
+          }}
+        />
       </div>
     </div>
   );
 }
 
-function ModuleCard({ module, index, onClick, visible }: {
-  module: Module; index: number; onClick: () => void; visible: boolean;
+function ModuleCard({
+  module,
+  index,
+  onClick,
+  visible,
+}: {
+  module: Module;
+  index: number;
+  onClick: () => void;
+  visible: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const color = getColor(index);
@@ -120,65 +178,101 @@ function ModuleCard({ module, index, onClick, visible }: {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: "100%", display: "flex", alignItems: "center", gap: 12,
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
         padding: "12px 14px",
         background: hovered ? "#FAFAFA" : "#fff",
         border: `1px solid ${hovered ? "#E5E7EB" : "#F3F4F6"}`,
-        borderRadius: 12, cursor: "pointer", textAlign: "left",
+        borderRadius: 12,
+        cursor: "pointer",
+        textAlign: "left",
         boxShadow: hovered
           ? "0 4px 12px rgba(0,0,0,0.07)"
           : "0 1px 2px rgba(0,0,0,0.04)",
         transform: visible
-          ? (hovered ? "translateY(-1px)" : "translateY(0)")
+          ? hovered
+            ? "translateY(-1px)"
+            : "translateY(0)"
           : "translateY(10px)",
         opacity: visible ? 1 : 0,
-        transition: visible
-          ? `all 200ms cubic-bezier(0.4,0,0.2,1)`
-          : "none",
+        transition: visible ? `all 200ms cubic-bezier(0.4,0,0.2,1)` : "none",
         transitionDelay: visible ? `${index * 45}ms` : "0ms",
-        position: "relative", overflow: "hidden",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
       {/* Yellow accent line on hover */}
-      <div style={{
-        position: "absolute", left: 0, top: "15%", bottom: "15%",
-        width: 3, borderRadius: "0 3px 3px 0",
-        background: "#FACC15",
-        opacity: hovered ? 1 : 0,
-        transition: "opacity 180ms ease",
-      }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: "15%",
+          bottom: "15%",
+          width: 3,
+          borderRadius: "0 3px 3px 0",
+          background: "#FACC15",
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 180ms ease",
+        }}
+      />
 
       {/* Icon */}
-      <div style={{
-        width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-        background: color.bg,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 13, fontWeight: 700, color: color.text,
-        letterSpacing: -0.4, fontFamily: "Inter, system-ui, sans-serif",
-        transition: "transform 180ms ease",
-        transform: hovered ? "scale(1.06)" : "scale(1)",
-        border: `1px solid ${color.dot}20`,
-      }}>
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 10,
+          flexShrink: 0,
+          background: color.bg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 13,
+          fontWeight: 700,
+          color: color.text,
+          letterSpacing: -0.4,
+          fontFamily: "Inter, system-ui, sans-serif",
+          transition: "transform 180ms ease",
+          transform: hovered ? "scale(1.06)" : "scale(1)",
+          border: `1px solid ${color.dot}20`,
+        }}
+      >
         {ini}
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 13.5, fontWeight: 600, color: "#111827",
-          letterSpacing: -0.2, lineHeight: 1.3,
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          marginBottom: 3,
-        }}>
+        <div
+          style={{
+            fontSize: 13.5,
+            fontWeight: 600,
+            color: "#111827",
+            letterSpacing: -0.2,
+            lineHeight: 1.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            marginBottom: 3,
+          }}
+        >
           {module.name}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{
-            fontSize: 10, fontWeight: 600, color: color.text,
-            background: color.bg, padding: "1.5px 7px", borderRadius: 100,
-            border: `1px solid ${color.dot}25`,
-            fontFamily: "monospace", letterSpacing: 0.3,
-          }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: color.text,
+              background: color.bg,
+              padding: "1.5px 7px",
+              borderRadius: 100,
+              border: `1px solid ${color.dot}25`,
+              fontFamily: "monospace",
+              letterSpacing: 0.3,
+            }}
+          >
             {module.code}
           </span>
           {module.participantCount !== undefined && (
@@ -190,27 +284,55 @@ function ModuleCard({ module, index, onClick, visible }: {
       </div>
 
       {/* Right */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 5,
+          flexShrink: 0,
+        }}
+      >
         {module.unreadCount ? (
-          <span style={{
-            minWidth: 20, height: 20, borderRadius: 100,
-            background: "#FACC15", color: "#1A1714",
-            fontSize: 9.5, fontWeight: 700, fontFamily: "monospace",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "0 5px",
-            boxShadow: "0 2px 6px rgba(250,204,21,0.4)",
-          }}>
+          <span
+            style={{
+              minWidth: 20,
+              height: 20,
+              borderRadius: 100,
+              background: "#FACC15",
+              color: "#1A1714",
+              fontSize: 9.5,
+              fontWeight: 700,
+              fontFamily: "monospace",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0 5px",
+              boxShadow: "0 2px 6px rgba(250,204,21,0.4)",
+            }}
+          >
             {module.unreadCount > 99 ? "99+" : module.unreadCount}
           </span>
         ) : (
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            stroke={hovered ? "#6B7280" : "#D1D5DB"} strokeWidth="2.5"
-            style={{ transition: `stroke 180ms ease, transform 180ms ease`, transform: hovered ? "translateX(2px)" : "none" }}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={hovered ? "#6B7280" : "#D1D5DB"}
+            strokeWidth="2.5"
+            style={{
+              transition: `stroke 180ms ease, transform 180ms ease`,
+              transform: hovered ? "translateX(2px)" : "none",
+            }}
+          >
             <polyline points="9 18 15 12 9 6" />
           </svg>
         )}
         {module.lastActivity && (
-          <span style={{ fontSize: 10, color: "#D1D5DB", fontFamily: "monospace" }}>
+          <span
+            style={{ fontSize: 10, color: "#D1D5DB", fontFamily: "monospace" }}
+          >
             {timeAgo(module.lastActivity)}
           </span>
         )}
@@ -220,7 +342,11 @@ function ModuleCard({ module, index, onClick, visible }: {
 }
 
 export default function ModuleSelector({
-  user, modules, onSelectModule, onLogout, isLoading = false,
+  user,
+  modules,
+  onSelectModule,
+  onLogout,
+  isLoading = false,
 }: ModuleSelectorProps) {
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(false);
@@ -234,10 +360,11 @@ export default function ModuleSelector({
     });
   }, []);
 
-  const filtered = modules.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.code.toLowerCase().includes(search.toLowerCase()) ||
-    (m.instructorName || "").toLowerCase().includes(search.toLowerCase())
+  const filtered = modules.filter(
+    (m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.code.toLowerCase().includes(search.toLowerCase()) ||
+      (m.instructorName || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   const firstName = user.name.split(" ")[0];
@@ -434,28 +561,40 @@ export default function ModuleSelector({
         }
         .ms-footer.in { opacity: 1; }
 
-        .ms-signout {
-          width: 100%; height: 42px;
-          background: #fff; border: 1px solid #E5E7EB; border-radius: 8px;
-          font-family: inherit; font-size: 13px; font-weight: 500;
-          color: #9CA3AF; cursor: pointer;
-          display: flex; align-items: center; justify-content: center; gap: 7px;
-          transition: all 150ms ease;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-          margin-bottom: 18px;
-        }
-        .ms-signout:hover {
-          background: #FFF1F2; border-color: #FECACA; color: #EF4444;
-        }
+       .ms-signout {
+  width: 100%; height: 42px;
+  background: #FFFBEB;
+  border: 2px solid #FACC15;
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  color: #1E293B;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all 150ms ease;
+  box-shadow: 0 2px 8px rgba(250,204,21,0.2);
+  margin-bottom: 18px;
+}
+.ms-signout:hover {
+  background: #FEF9C3;
+  border-color: #EAB308;
+  box-shadow: 0 4px 12px rgba(250,204,21,0.3);
+  transform: translateY(-1px);
+}
 
         .ms-powered {
-          text-align: center;
-          font-size: 11px; color: #D1D5DB; letter-spacing: 0.1px;
-        }
-        .ms-powered-name {
-          font-weight: 600; color: #FACC15;
-        }
-        .ms-powered-dash { color: #E5E7EB; margin: 0 4px; }
+  text-align: center;
+  font-size: 11.5px;
+  color: #9CA3AF;
+  letter-spacing: 0.1px;
+}
+.ms-powered-name {
+  font-weight: 700;
+  color: #FACC15;
+}
+.ms-powered-dash {
+  color: #D1D5DB;
+  margin: 0 4px;
+}
 
         /* ── Logout modal ── */
         .ms-overlay {
@@ -523,7 +662,6 @@ export default function ModuleSelector({
 
       <div className="ms-page">
         <div className="ms-wrap">
-
           {/* Top bar */}
           <div className={`ms-topbar ${visible ? "in" : ""}`}>
             <div className="ms-brand">
@@ -533,7 +671,14 @@ export default function ModuleSelector({
             </div>
             <div className="ms-topbar-right">
               <button className="ms-icon-btn" aria-label="Notifications">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
@@ -551,7 +696,9 @@ export default function ModuleSelector({
             <h1 className="ms-name">{firstName}</h1>
             <div className="ms-badges">
               <span className="ms-badge ms-badge-role">{user.role}</span>
-              <span className={`ms-badge ${user.subscription === "premium" ? "ms-badge-premium" : "ms-badge-basic"}`}>
+              <span
+                className={`ms-badge ${user.subscription === "premium" ? "ms-badge-premium" : "ms-badge-basic"}`}
+              >
                 {user.subscription}
               </span>
             </div>
@@ -564,21 +711,32 @@ export default function ModuleSelector({
           <div className={`ms-sec-head ${visible ? "in" : ""}`}>
             <span className="ms-sec-label">My Classes</span>
             <span className="ms-sec-count">
-              {search ? `${filtered.length} of ${modules.length}` : modules.length}
+              {search
+                ? `${filtered.length} of ${modules.length}`
+                : modules.length}
             </span>
           </div>
 
           {/* Search */}
           {modules.length > 4 && (
             <div className={`ms-search-wrap ${visible ? "in" : ""}`}>
-              <svg className="ms-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <svg
+                className="ms-search-icon"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
                 className="ms-search"
                 placeholder="Search classes..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           )}
@@ -586,13 +744,21 @@ export default function ModuleSelector({
           {/* List */}
           <div className="ms-list">
             {isLoading ? (
-              <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
             ) : filtered.length === 0 ? (
               <div className="ms-empty">
                 <div className="ms-empty-icon">{search ? "🔍" : "📚"}</div>
-                <p className="ms-empty-title">{search ? "No classes found" : "No classes yet"}</p>
+                <p className="ms-empty-title">
+                  {search ? "No classes found" : "No classes yet"}
+                </p>
                 <p className="ms-empty-sub">
-                  {search ? "Try a different search term" : "You haven't been enrolled in any classes yet"}
+                  {search
+                    ? "Try a different search term"
+                    : "You haven't been enrolled in any classes yet"}
                 </p>
               </div>
             ) : (
@@ -611,7 +777,14 @@ export default function ModuleSelector({
           {/* Footer */}
           <div className={`ms-footer ${visible ? "in" : ""}`}>
             <button className="ms-signout" onClick={() => setLogoutOpen(true)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
@@ -624,17 +797,23 @@ export default function ModuleSelector({
               All rights reserved
             </p>
           </div>
-
         </div>
       </div>
 
       {/* Logout confirm */}
       {logoutOpen && (
         <div className="ms-overlay" onClick={() => setLogoutOpen(false)}>
-          <div className="ms-sheet" onClick={e => e.stopPropagation()}>
+          <div className="ms-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="ms-sheet-handle" />
             <div className="ms-sheet-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
@@ -642,11 +821,25 @@ export default function ModuleSelector({
             </div>
             <p className="ms-sheet-title">Sign out of ChezaX?</p>
             <p className="ms-sheet-sub">
-              You'll be redirected back to the YazaIT platform. Your unread messages will be right here when you return.
+              You'll be redirected back to the YazaIT platform. Your unread
+              messages will be right here when you return.
             </p>
             <div className="ms-sheet-actions">
-              <button className="ms-btn-stay" onClick={() => setLogoutOpen(false)}>Stay</button>
-              <button className="ms-btn-confirm" onClick={() => { setLogoutOpen(false); onLogout(); }}>Sign out</button>
+              <button
+                className="ms-btn-stay"
+                onClick={() => setLogoutOpen(false)}
+              >
+                Stay
+              </button>
+              <button
+                className="ms-btn-confirm"
+                onClick={() => {
+                  setLogoutOpen(false);
+                  onLogout();
+                }}
+              >
+                Sign out
+              </button>
             </div>
           </div>
         </div>
