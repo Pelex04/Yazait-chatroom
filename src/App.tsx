@@ -12,6 +12,7 @@ import ModuleSelector from "./components/two";
 import socketService from "./services/socket";
 import { authAPI, moduleAPI } from "./services/api";
 import AdminPanel from "./components/AdminPanel.tsx";
+import ClerkCallback from "./components/ClerkCallback.tsx";
 
 interface Module {
   id: string;
@@ -32,7 +33,9 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const healthResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://chatroom-h46w.onrender.com'}/health`);
+        const healthResponse = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/health`,
+        );
         const healthData = await healthResponse.json();
         if (healthResponse.status === 503 || healthData.maintenanceMode) {
           setIsMaintenanceMode(true);
@@ -40,7 +43,7 @@ function App() {
           return;
         }
       } catch (error) {
-        console.error('[App] Cannot reach backend:', error);
+        console.error("[App] Cannot reach backend:", error);
         setIsLoading(false);
         return;
       }
@@ -88,7 +91,7 @@ function App() {
         const data = await moduleAPI.getMyModules();
         setModules(data);
       } catch (error) {
-        console.error('[App] Failed to fetch modules:', error);
+        console.error("[App] Failed to fetch modules:", error);
         setModules([]);
       } finally {
         setModulesLoading(false);
@@ -177,7 +180,10 @@ function App() {
             )
           }
         />
-
+        <Route
+          path="/sso-callback"
+          element={<ClerkCallback onLoginSuccess={handleLoginSuccess} />}
+        />
         <Route
           path="/"
           element={

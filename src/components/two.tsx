@@ -821,9 +821,10 @@ export default function ModuleSelector({
             </div>
             <p className="ms-sheet-title">Sign out of ChezaX?</p>
             <p className="ms-sheet-sub">
-              You'll be redirected back to the YazaIT platform. Your unread
+              You'll be redirected back to the Login OR YazaIT platform. Your unread
               messages will be right here when you return.
             </p>
+            
             <div className="ms-sheet-actions">
               <button
                 className="ms-btn-stay"

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
-  : 'https://chatroom-h46w.onrender.com/api';
+  : 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -13,8 +13,6 @@ const api = axios.create({
 
 // ============================================
 // REQUEST INTERCEPTOR
-// Simply attach token if it exists.
-// No cancellation — let the server respond naturally.
 // ============================================
 api.interceptors.request.use(
   (config) => {
@@ -34,8 +32,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      // Only clear session if we actually had a token (expired/invalid)
-      // If there was no token, we don't need to do anything
       const hadToken = !!localStorage.getItem('token');
 
       if (hadToken) {
@@ -98,6 +94,30 @@ export const authAPI = {
 
   getCurrentUser: async () => {
     const response = await api.get('/auth/me');
+    return response.data;
+  },
+
+  // ── Forgot Password ────────────────────────────────────────────────────
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  // ── Reset Password ─────────────────────────────────────────────────────
+  resetPassword: async ({
+    email,
+    code,
+    password,
+  }: {
+    email: string;
+    code: string;
+    password: string;
+  }) => {
+    const response = await api.post('/auth/reset-password', {
+      email,
+      code,
+      password,
+    });
     return response.data;
   },
 };

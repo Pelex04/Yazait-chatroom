@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { authAPI } from "../services/api";
 import { LogIn, UserPlus } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebookF } from "react-icons/fa";
+import ForgotPassword from "./ForgotPassword";
+import { useSignIn } from "@clerk/clerk-react";
+import { useClerk } from "@clerk/clerk-react";
 
 interface LoginProps {
   onLoginSuccess: (token: string, user: any) => void;
@@ -18,6 +22,40 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [subscription] = useState<"basic" | "premium">("premium");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const { signIn, isLoaded } = useSignIn();
+  const { signOut } = useClerk();
+
+ const handleSocialLogin = async (
+  provider: "oauth_google" | "oauth_facebook",
+) => {
+  if (!isLoaded) return;
+  try {
+    await signOut();
+    await signIn.authenticateWithRedirect({
+      strategy: provider,
+      redirectUrl: `${window.location.origin}/sso-callback`,
+      redirectUrlComplete: `${window.location.origin}/sso-callback`,
+    });
+  } catch (err: any) {
+    setError("Social login failed. Please try again.");
+  }
+};
+
+  // ── Forgot Password screen ─────────────────────────────────────────────
+  if (showForgot) {
+    return (
+      <ForgotPassword
+        onBack={() => setShowForgot(false)}
+        onResetSuccess={(token: string, user: any) => {
+          // Fresh token already saved to localStorage inside ForgotPassword.tsx.
+          // Just call onLoginSuccess so App.tsx transitions straight to chat.
+          setShowForgot(false);
+          onLoginSuccess(token, user);
+        }}
+      />
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +145,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 <div className="text-right mt-0.5">
                   <button
                     type="button"
+                    onClick={() => setShowForgot(true)}
                     className="text-[11px] text-yellow-500 hover:underline"
                   >
                     Forgot Password?
@@ -132,28 +171,34 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </form>
 
           {/* Social */}
-          {!isRegister && (
-            <>
-              <div className="my-4 flex items-center gap-2">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-[11px] text-gray-400">
-                  or continue with
-                </span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
+          <>
+            <div className="my-4 flex items-center gap-2">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-[11px] text-gray-400">or continue with</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button className="flex items-center justify-center gap-2 border border-gray-300 rounded-md py-1.5 text-xs hover:bg-gray-50">
-                  <FcGoogle size={16} />
-                  Google
-                </button>
-                <button className="flex items-center justify-center gap-2 border border-gray-300 rounded-md py-1.5 text-xs hover:bg-gray-50 text-blue-600">
-                  <FaFacebookF size={14} />
-                  Facebook
-                </button>
-              </div>
-            </>
-          )}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleSocialLogin("oauth_google")}
+                disabled={!isLoaded}
+                className="flex items-center justify-center gap-2 border border-gray-300 rounded-md py-1.5 text-xs hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FcGoogle size={16} />
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSocialLogin("oauth_facebook")}
+                disabled={!isLoaded}
+                className="flex items-center justify-center gap-2 border border-gray-300 rounded-md py-1.5 text-xs hover:bg-gray-50 text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FaFacebookF size={14} />
+                Facebook
+              </button>
+            </div>
+          </>
 
           <div className="text-center mt-4">
             <button

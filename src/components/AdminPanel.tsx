@@ -7,7 +7,7 @@ import {
 } from "recharts";
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-const API_URL = "https://chatroom-h46w.onrender.com/api/admin";
+const API_URL = "http://localhost:5000/api/admin";
 
 const adminFetch = async (path: string, token: string, options: RequestInit = {}): Promise<any> => {
   const res = await fetch(`${API_URL}${path}`, {
