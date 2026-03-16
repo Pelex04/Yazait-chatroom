@@ -486,7 +486,7 @@ export default function LearningPlatformChat({
       formData.append("audio", audioBlob, "voice.webm");
       formData.append("duration", duration.toString());
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/voice/upload-voice", {
+      const response = await fetch("https://chatroom-h46w.onrender.com/api/voice/upload-voice", {
         method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
       if (!response.ok) throw new Error("Upload failed");
@@ -570,7 +570,7 @@ export default function LearningPlatformChat({
       formData.append("file", attachmentPreview.file);
       formData.append("roomId", selectedRoom.id);
       const token = localStorage.getItem("token");
-      const uploadResponse = await fetch("http://localhost:5000/api/attachment/upload-attachment", {
+      const uploadResponse = await fetch("https://chatroom-h46w.onrender.com/api/attachment/upload-attachment", {
         method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
       if (!uploadResponse.ok) {
@@ -770,7 +770,7 @@ export default function LearningPlatformChat({
           </div>
           <div className="text-xs opacity-75 mt-1">{fmt(currentTime)} / {fmt(message.audioDuration || 0)}</div>
         </div>
-        <audio ref={audioRef} src={`http://localhost:5000${message.audioUrl}`}
+        <audio ref={audioRef} src={`https://chatroom-h46w.onrender.com${message.audioUrl}`}
           onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
           onEnded={() => { setIsPlaying(false); setCurrentTime(0); }} className="hidden"/>
       </div>
@@ -782,7 +782,7 @@ export default function LearningPlatformChat({
     if (!attachment) return null;
     const isImage = attachment.mimetype.startsWith("image/");
     const isVideo = attachment.mimetype.startsWith("video/");
-    const fileUrl = `http://localhost:5000${attachment.url}`;
+    const fileUrl = `https://chatroom-h46w.onrender.com${attachment.url}`;
 
     const downloadFile = async () => {
       try {

@@ -10,7 +10,7 @@ interface ClerkCallbackProps {
 
 const API_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
-  : "http://localhost:5000/api";
+  : "https://chatroom-h46w.onrender.com/api";
 
 export default function ClerkCallback({ onLoginSuccess }: ClerkCallbackProps) {
   const { handleRedirectCallback } = useClerk();
