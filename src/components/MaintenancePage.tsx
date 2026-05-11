@@ -1,134 +1,199 @@
-import { Wrench, Calendar, ArrowRight } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 const MaintenancePage = () => {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ fontFamily: "'DM Sans', sans-serif", background: '#fafaf8', color: '#0f0f0e' }}
+    >
+      {/* Google Fonts */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
+
+        :root {
+          --cx-black: #0f0f0e;
+          --cx-white: #fafaf8;
+          --cx-surface: #f4f3f0;
+          --cx-border: #e2e0da;
+          --cx-muted: #8a8880;
+          --cx-accent: #c8a86b;
+          --cx-accent-dim: #f0e8d8;
+        }
+
+        @keyframes rise {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .cx-anim-1 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.05s forwards; }
+        .cx-anim-2 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.15s forwards; }
+        .cx-anim-3 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.22s forwards; }
+        .cx-anim-4 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.30s forwards; }
+        .cx-anim-5 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.35s forwards; }
+        .cx-anim-6 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.42s forwards; }
+        .cx-anim-7 { opacity: 0; animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.50s forwards; }
+
+        .cx-support-link {
+          color: var(--cx-black);
+          font-weight: 500;
+          text-decoration: none;
+          border-bottom: 1px solid var(--cx-border);
+          padding-bottom: 1px;
+          transition: border-color 0.2s;
+        }
+        .cx-support-link:hover {
+          border-color: var(--cx-black);
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CX</span>
-            </div>
-            <span className="text-lg font-semibold text-gray-900 tracking-tight">
-              ChezaX
+      <header style={{ borderBottom: '1px solid #e2e0da', padding: '1.1rem 2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              width: 32, height: 32,
+              background: '#0f0f0e',
+              borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <span style={{ color: '#fff', fontSize: 12, fontWeight: 600, letterSpacing: '0.02em', fontFamily: "'DM Mono', monospace" }}>
+              CX
             </span>
           </div>
+          <span style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em', color: '#0f0f0e' }}>
+            ChezaX
+          </span>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="max-w-2xl w-full text-center space-y-8">
-          {/* Icon */}
-          <div className="flex justify-center">
-            <div className="w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-200">
-              <Wrench className="w-10 h-10 text-gray-900" strokeWidth={1.5} />
-            </div>
-          </div>
+      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
+        <div style={{ maxWidth: 620, width: '100%' }}>
 
-          {/* Status Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-sm font-medium text-amber-900">
-            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-            Scheduled Maintenance
+          {/* Eyebrow */}
+          <div className="cx-anim-1" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '2rem' }}>
+            <span style={{ width: 28, height: 1, background: '#8a8880', display: 'block' }} />
+            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8a8880', fontFamily: "'DM Mono', monospace" }}>
+              System maintenance
+            </span>
           </div>
 
           {/* Heading */}
-          <div className="space-y-3">
-            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
-              We're making ChezaX better
-            </h1>
-            <p className="text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
-              We're currently performing scheduled maintenance to improve your experience. 
-              We'll be back online shortly.
-            </p>
-          </div>
+          <h1
+            className="cx-anim-2"
+            style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 600, letterSpacing: '-0.035em', lineHeight: 1.08, color: '#0f0f0e', marginBottom: '1.25rem' }}
+          >
+            We're improving<br />the platform.
+          </h1>
 
-          {/* Timeline */}
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-700">
-              <Calendar className="w-4 h-4" />
-              Expected completion
+          {/* Subtitle */}
+          <p
+            className="cx-anim-3"
+            style={{ fontSize: 17, fontWeight: 300, color: '#8a8880', lineHeight: 1.65, maxWidth: 480 }}
+          >
+            ChezaX is currently undergoing scheduled maintenance. We'll be back online shortly — thank you for your patience.
+          </p>
+
+          {/* Divider */}
+          <div className="cx-anim-4" style={{ width: '100%', height: 1, background: '#e2e0da', margin: '2.5rem 0' }} />
+
+          {/* Meta grid */}
+          <div
+            className="cx-anim-5"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 1,
+              background: '#e2e0da',
+              border: '1px solid #e2e0da',
+              borderRadius: 12,
+              overflow: 'hidden',
+              marginBottom: '2rem',
+            }}
+          >
+            <div style={{ background: '#f4f3f0', padding: '1.4rem 1.5rem' }}>
+              <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8a8880', fontFamily: "'DM Mono', monospace", marginBottom: '0.5rem' }}>
+                Status
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 500, color: '#0f0f0e', letterSpacing: '-0.01em' }}>
+                <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#c8a86b', marginRight: 6, verticalAlign: 'middle', position: 'relative', top: -1 }} />
+                In progress
+              </div>
             </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-gray-900">
+            <div style={{ background: '#f4f3f0', padding: '1.4rem 1.5rem' }}>
+              <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8a8880', fontFamily: "'DM Mono', monospace", marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Calendar size={11} />
+                Expected completion
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 500, color: '#0f0f0e', letterSpacing: '-0.01em' }}>
                 June 1, 2026
               </div>
-              <div className="text-sm text-gray-600">
-                We apologize for any inconvenience
-              </div>
             </div>
           </div>
 
-          {/* What's Happening */}
-          <div className="text-left bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              What we're working on
-            </h2>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
-                <span className="text-gray-700">Enhanced performance and reliability</span>
+          {/* Work list */}
+          <ul
+            className="cx-anim-6"
+            style={{ listStyle: 'none', border: '1px solid #e2e0da', borderRadius: 12, overflow: 'hidden' }}
+          >
+            {[
+              { num: '01', text: 'Enhanced performance and reliability', tag: 'infra' },
+              { num: '02', text: 'New features and improvements',         tag: 'product' },
+              { num: '03', text: 'Security updates and optimizations',    tag: 'security' },
+            ].map((item, i, arr) => (
+              <li
+                key={item.num}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '1rem 1.5rem',
+                  borderBottom: i < arr.length - 1 ? '1px solid #e2e0da' : 'none',
+                  background: '#ffffff',
+                }}
+              >
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#8a8880', minWidth: 20 }}>
+                  {item.num}
+                </span>
+                <span style={{ fontSize: 14.5, color: '#0f0f0e', fontWeight: 400 }}>
+                  {item.text}
+                </span>
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    fontSize: 11,
+                    fontFamily: "'DM Mono', monospace",
+                    fontWeight: 500,
+                    padding: '3px 9px',
+                    borderRadius: 4,
+                    background: '#f0e8d8',
+                    color: '#7a5e2a',
+                  }}
+                >
+                  {item.tag}
+                </span>
               </li>
-              <li className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
-                <span className="text-gray-700">New features and improvements</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
-                <span className="text-gray-700">Security updates and optimizations</span>
-              </li>
-            </ul>
-          </div>
+            ))}
+          </ul>
 
           {/* Support */}
-          <div className="pt-4">
-            <p className="text-sm text-gray-500">
-              Need help?{' '}
-              <a 
-                href="mailto:rastakadema@gmail.com" 
-                className="text-gray-900 font-medium hover:underline"
-              >
-                Contact our support team
-              </a>
-            </p>
+          <div className="cx-anim-7" style={{ marginTop: '2rem', fontSize: 13.5, color: '#8a8880' }}>
+            Need assistance?{' '}
+            <a href="mailto:rastakadema@gmail.com" className="cx-support-link">
+              Contact support
+            </a>
           </div>
+
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
-      <div className="border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <p className="text-center text-xs text-gray-500">
-            Powered by <span className="font-medium text-gray-700">Rasta Kadema</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Subtle Animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .max-w-2xl > * {
-          animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-        }
-        
-        .max-w-2xl > *:nth-child(1) { animation-delay: 0.1s; }
-        .max-w-2xl > *:nth-child(2) { animation-delay: 0.2s; }
-        .max-w-2xl > *:nth-child(3) { animation-delay: 0.3s; }
-        .max-w-2xl > *:nth-child(4) { animation-delay: 0.4s; }
-        .max-w-2xl > *:nth-child(5) { animation-delay: 0.5s; }
-        .max-w-2xl > *:nth-child(6) { animation-delay: 0.6s; }
-      `}</style>
+      <footer style={{ borderTop: '1px solid #e2e0da', padding: '1.4rem 2.5rem', textAlign: 'center' }}>
+        <p style={{ fontSize: 12, color: '#8a8880', letterSpacing: '0.01em' }}>
+          Powered by <span style={{ color: '#0f0f0e', fontWeight: 500 }}>Rasta Kadema</span>
+        </p>
+      </footer>
     </div>
   );
 };
