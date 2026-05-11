@@ -37,6 +37,7 @@ function App() {
           `${import.meta.env.VITE_API_URL || "https://chatroom-h46w.onrender.com"}/health`,
         );
         const healthData = await healthResponse.json();
+        setIsMaintenanceMode(true);
         if (healthResponse.status === 503 || healthData.maintenanceMode) {
           setIsMaintenanceMode(true);
           setIsLoading(false);
